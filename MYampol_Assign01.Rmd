@@ -1,0 +1,446 @@
+---
+title: "605-HW01-GaussJordan"
+author: "Michael Y"
+date: "September 1, 2019"
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+classoption: landscape
+editor_options:
+  chunk_output_type: inline
+---
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>---
+
+#### Setup
+```{r setup, eval=T}
+knitr::opts_chunk$set(echo = TRUE)
+directory = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20190901_Week01/"
+knitr::opts_knit$set(root.dir = directory)
+
+### Make the output wide enough
+options(scipen = 999, digits=6, width=150)
+
+### Load some libraries
+library(tidyr)
+library(dplyr)
+library(kableExtra)
+library(pracma)
+
+```
+
+#### Function to write Matrix, courtesy of Vinayak Patel :
+``` {r writemtx, eval=T}
+writeMatrix <- function(x) {  
+  begin <- "\\begin{bmatrix}"  
+  end   <- "\\end{bmatrix}"  
+  X     <-    apply(x, 1, function(x) {
+      paste(
+          paste(x, collapse = "&"),
+          "\\\\"
+      )
+    }
+  )  
+  paste(c(begin, X, end), 
+        collapse = "")
+  }
+```
+
+
+## Part 1 - DotProduct, Norm, Cosine
+
+You can think of vectors representing many dimensions of related information. 
+
+For instance, Netflix might store all the ratings a user gives to movies in a vector. 
+
+This is clearly a vector of very large dimensions (in the millions) and very sparse as the user might have rated only a few movies. 
+
+Similarly, Amazon might store the items purchased by a user in a vector, with each slot or dimension representing a unique product and the value of the slot, the number of such items the user bought. 
+
+One task that is frequently done in these settings is to find similarities between users. 
+
+And, we can use dot-product between vectors to do just that. 
+
+As you know, the dot-product is proportional to the length of two vectors and to the angle between them. 
+
+In fact, the dot-product between two vectors, normalized by their lengths is called as the cosine distance and is frequently used in recommendation engines.
+
+### (1) Calculate the dot product u:v where u = [0.5; 0.5] and v = [3;-4]
+```{r Q1-1, eval=T}
+
+u = c(0.5, 0.5)
+v = c(3  , -4 )
+dotproduct_uv = dot(u,v)       # dot is in library pracma
+dotproduct_uv
+```
+$$ u \cdot v = `r dotproduct_uv` $$
+
+
+### (2) What are the lengths of u and v? 
+Please note that the mathematical notion of the length of a vector is not the same as a computer science definition.
+```{r Q1-2, eval=T}
+len_u = sqrt(dot(u,u))
+len_u
+len_v = sqrt(dot(v,v))
+len_v
+```
+
+
+$$ \left \| u \right \|=  `r len_u` $$
+
+$$ \left \| v \right \|=  `r len_v` $$
+
+### (3) What is the linear combination: 3u - 2v?
+```{r Q1-3, eval=T}
+result = 3*u - 2*v
+as.matrix(result)
+```
+
+
+
+
+
+
+
+$$ 3u-2v=3 `r writeMatrix(as.matrix(u))` - 2 `r writeMatrix(as.matrix(v))` = `r writeMatrix(as.matrix(result))` $$
+
+
+
+
+### (4) What is the angle between u and v?
+```{r Q1-4, eval=T}
+rad2deg <-function(rad) rad/pi * 180
+
+deg2rad <-function(deg) pi*deg / 180
+
+cos_theta = dotproduct_uv / (len_u * len_v)
+cos_theta
+theta_rads = acos(cos_theta)
+theta_rads 
+theta_degs = rad2deg(theta_rads)
+theta_degs
+```
+
+
+$$ cos \left( \theta _{uv} \right)=\frac{u\cdot v}{\left \| u \right \|\left \| v \right \|} 
+                                 = \frac{ `r dotproduct_uv`}{`r len_u`*`r len_v`} 
+                                 = `r cos_theta` $$
+                                 
+  
+$$ cos^{-1}\left( `r cos_theta` \right ) = `r theta_rads` \: (in\:  radians) = `r theta_degs` ^{\circ } \: (in\:  degrees)  $$
+  
+***
+
+  
+
+## Part 2 
+
+### Set up a system of equations with 3 variables and 3 constraints and solve for x. 
+ Please write a function in R that will take two variables (matrix A & constraint vector b) and solve using elimination. 
+ Your function should produce the right answer for the system of equations for any 3-variable, 3-equation system. 
+ You don't have to worry about degenerate cases and can safely assume that the function will only be tested with a system of equations that has a solution. 
+ Please note that you do have to worry about zero pivots, though. 
+ Please note that you should not use the built-in function solve to solve this system or use matrix inverses. 
+ The approach that you should employ is to construct an Upper Triangular Matrix and then back-substitute to get the solution. 
+ Alternatively, you can augment the matrix A with vector b and jointly apply the Gauss Jordan elimination procedure.
+
+
+### Please test it with the system below and it should produce a solution 
+#### x = [ -1.55 ; -0.32 ; 0.95 ]
+
+```{r define-matrices,eval=T}
+### Define the matrices specified.
+### For equation display, also define the "x" column vector
+
+A = matrix(c( 1, 1, 3,
+               2,-1, 5,
+              -1,-2, 4),
+            nrow=3,byrow = T)
+x <- matrix(c("x1","x2","x3"),
+            nrow=3,byrow = T)
+b <- matrix(c(1,2,6),
+           nrow=3,byrow = T)
+```
+
+
+### Display the equation given in the assignment:
+
+$$ `r writeMatrix(A)`  `r writeMatrix(x)` = `r writeMatrix(b)` $$
+
+## Function to perform Gauss-Jordan elimination
+### If successful, returns the identity matrix followed by the result column
+
+```{r MYGJ, eval=T}
+MYGaussJordan <- function(A, b){
+    # A: coefficient matrix of coefficients
+    # b: right-hand side 
+
+
+    rowCount <- nrow(A)
+    colCount <- ncol(A)
+    epsilon=1e-7                      # checking for zero pivot
+    determinant <- 1                  # keep track of the determinant that has been divided out
+    pivotList <- rep(0, rowCount)     # e.g., (0 0 0)
+
+    b <- as.matrix(b)                 # ensure that b is a matrix (rather than a vector)
+    Combined <- cbind(A, b)           # append the columns of b onto A
+
+    i <- 1
+    j <- 1
+
+    while (i <= rowCount && j <= colCount){
+        while (j <= colCount){
+            # select column j
+            thisColumn <- Combined[,j]
+            
+            # replace the values at or above the diagonal with zeroes  
+            thisColumn[1:rowCount < i] <- 0
+            
+            # find the maximum pivot in thisColumn at or below current row
+            whichRow <- which.max(abs(thisColumn))  # which.max gets the index 
+                                                    # of the maximum item in the vector
+            pivot <- thisColumn[whichRow]     # select the element in the column for pivoting
+            determinant <- determinant*pivot  # because the matrix determinant will be 
+                                              # divided by the pivot
+            pivotList[i] <- pivot
+            
+            # check for zero pivot!
+            if (abs(pivot) <= epsilon) {      # check for zero pivot!
+                j <- j + 1                    # skip to the next column, 
+                                              # because there is a zero here!
+                next                          # flow goes back to while (j <= colCount) 
+            }
+            
+            if (whichRow > i) {
+                Combined[c(whichRow,i),] <- Combined[c(i,whichRow),] # switch rows
+                determinant <- -determinant   # switching rows negates the determinant
+            }
+            Combined[i,] <- Combined[i,] / pivot    # multiply row by pivot
+            for (k in 1:rowCount){
+                if (k == i) next              # skip the diagonal
+                if (abs(Combined[k, j]) < epsilon) next # there is a zero here, so skip to next k
+                Combined[k,] <- Combined[k,] - Combined[k, j] * Combined[i,]
+            }
+            j <- j + 1
+            break                             # quit the inner loop because pivot completed
+        }
+        i <- i + 1
+    }
+
+    # move rows filled with zeros to the bottom
+    whichZeros <- which(apply(Combined[,1:colCount], 1, function(x) max(abs(x)) <= epsilon))
+    if (length(whichZeros) > 0){
+        # move rows of all zeros (inconsistent system) to the bottom
+        Combined <- rbind(Combined[-whichZeros,], 
+                          Combined[whichZeros,])
+    }
+    # return the combined matrix
+    Combined
+}
+```
+
+
+
+## Compute via MYGaussJordan :
+
+```{r run-MYGJ, eval=T}
+MYGJ = MYGaussJordan(A,b)
+```
+
+### Display the full result (with identity at left)
+```{r run-MYGJ2, eval=T}
+MYGJ
+```
+
+$$ Result_{MYGJ} = `r writeMatrix(MYGJ)` $$
+
+
+### Compute the number of rows and columns, to trim the desired answer from the full MYGJ result
+```{r run-MYGJ3, eval=T}
+numrows <- nrow(MYGJ)
+colsA <- ncol(A)
+colsb <- ncol(b)
+colsMYGJ <- ncol(MYGJ)
+```
+
+### Result for x (e.g., final column)
+```{r run-MYGJ4, eval=T}
+xMYGJ <- MYGJ[,-(1:colsA)]
+xMYGJ
+```
+
+### If the above is a single vector, it will not be stored as a matrix, so make it a matrix
+```{r run-MYGJ5, eval=T}
+xMYGJmat <- matrix(xMYGJ, nrow=numrows)
+xMYGJmat
+```
+
+### Display the result for $x_{MYGJ}$
+
+$$ x_{MYGJ} = `r writeMatrix(xMYGJmat)` $$
+
+
+
+
+### Confirm that the MY Gauss Jordan result is correct:
+```{r checkMYGJ, eval=T}
+### Compute Ax
+A %*% xMYGJmat
+
+### Check that Ax-b is close to zero (it may differ by a tiny epsilon due to numerical precision)
+A %*% xMYGJmat - b
+```
+
+### Final equation for MYGJ:
+
+$$ `r writeMatrix(A)`  `r writeMatrix(xMYGJmat)` = `r writeMatrix(A %*% xMYGJmat)` \approx `r writeMatrix(b)` $$
+
+***
+
+## Gauss-Jordan Elimination, using matlib::gaussianElimination()  :
+```{r gaussjordan, eval=T}
+# A is 3x3 coefficient matrix, 
+# B are the contraints
+# function solves for vector x such that Ax=b 
+
+library(matlib)
+gaussJordan <- function(A, b) {
+  x = gaussianElimination(A,b,verbose=TRUE)
+  return(x)
+}
+```
+
+### Compute via Gauss-Jordan Elimination (package matlib) :
+```{r run-GJ, eval=T}
+GJ <- gaussJordan(A,b)
+```
+
+### Display the full result (with identity at left)
+```{r run-GJ2, eval=T}
+GJ
+```
+
+$$ Result_{GJ} = `r writeMatrix(GJ)` $$
+
+
+### Compute the number of rows and columns, to trim the desired answer from the full GJ result
+```{r run-GJ3, eval=T}
+numrows <- nrow(GJ)
+colsA <- ncol(A)
+colsb <- ncol(b)
+colsGJ <- ncol(GJ)
+```
+
+### Result for x (e.g., final column)
+```{r run-GJ4, eval=T}
+xGJ <- GJ[,-(1:colsA)]
+xGJ
+```
+
+### If the above is a single vector, it will not be stored as a matrix, so make it a matrix
+```{r run-GJ5, eval=T}
+xGJmat <- matrix(xGJ, nrow=numrows)
+xGJmat
+```
+
+### Display the result for $x_{GJ}$
+
+$$ x_{GJ} = `r writeMatrix(xGJmat)` $$
+
+### Confirm that the Gauss-Jordan result is correct:
+```{r checkGJ, eval=T}
+### Compute Ax
+A %*% xGJmat
+
+### Check that Ax-b is close to zero (it may differ by a tiny epsilon due to numerical precision)
+A %*% xGJmat - b
+```
+
+### Final equation for Gauss-Jordan:
+
+$$ `r writeMatrix(A)`  `r writeMatrix(xGJmat)` = `r writeMatrix(A %*% xGJmat)`  \approx `r writeMatrix(b)` $$
+
+***
+
+
+
+## Row-Reduced Echelon Form, using pracma::rref()
+```{r row-reduced-echelon-form, eval=TRUE}
+# A is 3x3 coefficient matrix, 
+# B are the contraints
+# function solves for vector x such that Ax=b 
+
+library(pracma)
+RowReducedEchelonForm <- function(A, b) {
+  x = rref(cbind(A,b))
+  return(x)
+}
+```
+
+
+### Compute via Row Reduced Echelon Form (rref) :
+
+```{r run-rref, eval=T}
+RREF <- RowReducedEchelonForm(A,b)
+```
+
+### Display the full result (with identity at left)
+```{r run-RREF2, eval=T}
+RREF
+```
+
+$$ Result_{RREF} = `r writeMatrix(RREF)` $$
+
+
+### Compute the number of rows and columns, to trim the desired answer from the full RREF result
+```{r run-RREF3, eval=T}
+numrows <- nrow(RREF)
+colsA <- ncol(A)
+colsb <- ncol(b)
+colsRREF <- ncol(RREF)
+```
+
+### Result for x (e.g., final column)
+```{r run-RREF4, eval=T}
+xRREF <- RREF[,-(1:colsA)]
+xRREF
+```
+
+### If the above is a single vector, it will not be stored as a matrix, so make it a matrix
+```{r run-RREF5, eval=T}
+xRREFmat <- matrix(xRREF, nrow=numrows)
+xRREFmat
+```
+
+### Display the result for $x_{RREF}$
+
+$$ x_{RREF} = `r writeMatrix(xRREFmat)` $$
+
+
+
+
+### Confirm that the Row Reduced Echelon Form result is correct:
+```{r checkRREF, eval=T}
+### Compute Ax
+A %*% xRREFmat
+
+### Check that Ax-b is close to zero (it may differ by a tiny epsilon due to numerical precision)
+A %*% xRREFmat - b
+```
+
+### Final equation for RREF:
+
+$$ `r writeMatrix(A)`  `r writeMatrix(xRREFmat)` = `r writeMatrix(A %*% xRREFmat)`  \approx `r writeMatrix(b)` $$
+
+***
+
