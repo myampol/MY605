@@ -1,0 +1,616 @@
+---
+title: "605-HW02-MatrixFactorization"
+author: "Michael Y." 
+date: "September 8, 2019"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+classoption: landscape
+editor_options:
+  chunk_output_type: inline
+---
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>---
+
+#### Setup
+```{r setup, eval=T}
+knitr::opts_chunk$set(echo = TRUE)
+directory = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20190908_Week02/"
+knitr::opts_knit$set(root.dir = directory)
+knitr::opts_knit$set(digits=6)
+
+### Make the output wide enough
+options(scipen = 999, digits=6, width=150)
+
+### Load some libraries
+library(tidyr)
+library(dplyr)
+library(kableExtra)
+library(pracma)
+
+```
+
+#### Function to write Matrix, courtesy of Vinayak Patel :
+``` {r writemtx, eval=T}
+writeMatrix <- function(x) {  
+  begin <- "\\begin{bmatrix}"  
+  end   <- "\\end{bmatrix}"  
+  X     <-    apply(x, 1, function(x) {
+      paste(
+          paste(x, collapse = "&"),
+          "\\\\"
+      )
+    }
+  )  
+  paste(c(begin, X, end), 
+        collapse = "")
+  }
+```
+
+#### Function to write numerical Matrix, controlling decimals, adapted :
+``` {r wnmtx, eval=T}
+wnumMatrix <- function(x) {  
+  begin <- "\\begin{bmatrix}"  
+  end   <- "\\end{bmatrix}"  
+  X     <-    apply(x, 1, function(x) {
+      paste(
+          paste(format(x, digits = options()$digits), collapse = "&"),
+          "\\\\"
+      )
+    }
+  )  
+  paste(c(begin, X, end), 
+        collapse = "")
+  }
+```
+
+
+# Part 1 - (non)Commutivity of Matrix Transposes
+
+
+## (1) Show that ${A^{T}A \neq AA^{T}}$ in General.  (Proof and Demonstration)
+
+```{r rankA, eval=T, echo=F}
+A = c(
+ "A_{1,1}", "A_{1,2}", "A_{1,j}", "A_{1,n}", 
+ "A_{2,1}", "A_{2,2}", "A_{2,j}", "A_{2,n}", 
+ "A_{i,1}", "A_{i,2}", "A_{i,j}", "A_{i,n}", 
+ "A_{n,1}", "A_{n,2}", "A_{n,j}", "A_{n,n}"
+)
+A=matrix(A,nrow=4,byrow=T)
+A
+AT = t(A)
+AT
+```
+$$ A = `r writeMatrix(A)` $$
+$$ A^T = `r writeMatrix(AT)` $$
+$${ AA^{T}=  `r writeMatrix(A)`  `r writeMatrix(AT)` } =  \left[ \begin{matrix} 
+\sum\limits_{ j=1 }^{ n }{ { A }_{ 1,j }^{ 2 } }  & \sum\limits_{ j=1 }^{ n }{ { A }_{ 1,j }{ A }_{ 2,j } }  & ... & \sum\limits_{ j=1 }^{ n }{ { A }_{ 1,j }{ A }_{ n,j } }  \\ 
+\sum\limits_{ j=1 }^{ n }{ { A }_{ 1,j }{ A }_{ 2,j } }  & \sum\limits_{ j=1 }^{ n }{ { A }_{ 2,j }^{ 2 } }  & ... & \sum\limits_{ j=1 }^{ n }{ { A }_{ 2,j }{ A }_{ n,j } }  \\ 
+... & ... & ... & ... \\ 
+\sum\limits_{ j=1 }^{ n }{ { A }_{ 1,j }{ A }_{ n,j } }  & \sum\limits_{ j=1 }^{ n }{ { A }_{ 2,j }{ A }_{ n,j } }  & ... & \sum\limits_{ j=1 }^{ n }{ { A }_{ n,j }^{ 2 } }  
+\end{matrix} \right]  $$
+
+
+$${ A^TA = `r writeMatrix(AT)` `r writeMatrix(A)` } = \left[ \begin{matrix} 
+\sum\limits_{ i=1 }^{ n }{ { A }_{ i,1 }^{ 2 } }  & \sum\limits_{ i=1 }^{ n }{ { A }_{ i,1 }{ A }_{ i,2 } }  & ... & \sum\limits_{ i=1 }^{ n }{ { A }_{ i,1 }{ A }_{ i,n } }  \\ 
+\sum\limits_{ i=1 }^{ n }{ { A }_{ i,1 }{ A }_{ i,2 } }  & \sum\limits_{ i=1 }^{ n }{ { A }_{ i,2 }^{ 2 } }  & ... & \sum\limits_{ i=1 }^{ n }{ { A }_{ i,2 }{ A }_{ i,n } }  \\ 
+... & ... & ... & ... \\ 
+\sum\limits_{ i=1 }^{ n }{ { A }_{ i,1 }{ A }_{ i,n } }  & \sum\limits_{ i=1 }^{ n }{ { A }_{ i,2 }{ A }_{ i,n } }  & ... & \sum\limits_{ i=1 }^{ n }{ { A }_{ i,n }^{ 2 } }  
+\end{matrix} \right] $$
+
+
+For the above to be true, we would need to have the above summations to be elementwise equal between the top and bottom matrices.     
+This is usually not the case.   
+
+### COUNTEREXAMPLE:    
+
+```{r counterexample, eval=T}
+Q = c(1,2,3,6,4,5,7,8,9) 
+Q=matrix(Q,3,3,T) 
+Q
+# Transpose
+QT = t(Q)
+QT
+# Q * QT
+QQT = Q %*% QT
+QQT
+# QT * Q
+QTQ = QT %*% Q
+QTQ
+# Are the entries equal?
+QQT == QTQ
+
+```
+
+As a simple counterexample, consider:      
+
+
+$$ Q = `r writeMatrix(Q)` ; Q^{T} = `r writeMatrix(QT)`$$
+$$ QQ^{T} = `r writeMatrix(Q)` `r writeMatrix(QT)` = `r writeMatrix(QQT)`$$
+$$ Q^{T}Q = `r writeMatrix(QT)` `r writeMatrix(Q)` = `r writeMatrix(QTQ)`$$
+Clearly, ${QQ^T \neq Q^TQ}$   .  
+
+
+
+***  
+
+## (2) For a special type of square matrix,  ${ A^{ T }A = AA^{ T } }$   
+#### Under what conditions could this be true? (Hint: The Identity matrix I is an example of such a matrix).
+
+
+
+This is true for **Permutation** matrices because 
+
+$$(PP^T)_{ij} = \sum_{k=1}^n P_{ik} P^T_{kj} = \sum_{k=1}^n P_{ik} P_{jk}$$
+and   
+
+$$\sum_{k=1}^n P_{ik} P_{jk} = \begin{cases} 1 & \text{if } i = j \\ 0 & \text{otherwise} \end{cases}$$
+so $$PP^T = I$$ .
+
+### PERMUTATION EXAMPLE:  
+```{r permutation, eval=T}
+P = c(
+0,1,0,0,0,
+0,0,0,1,0,
+1,0,0,0,0,
+0,0,1,0,0,
+0,0,0,0,1
+)
+P=matrix(P,5,5,T)
+P
+PT=t(P)
+PT
+PPT = P %*% PT
+PPT
+PTP = PT %*% P
+PTP
+PPT==PTP
+```
+
+For example, consider:    
+
+$$ P = `r writeMatrix(P)` ; P^{T} = `r writeMatrix(PT)`$$
+$$ PP^{T} = `r writeMatrix(P)` `r writeMatrix(PT)` = `r writeMatrix(PPT)` = I_5$$
+$$ P^{T}P = `r writeMatrix(PT)` `r writeMatrix(P)` = `r writeMatrix(PTP)` =I_5$$
+
+***
+
+
+Obviously commutativity is true for **symmetric** matrices because, by definition,  ${A = A^{T}}$, so ${AA^T}=AA=A^TA$   .      
+
+### SYMMETRIC EXAMPLE:
+```{r symmetric, eval=T}
+S = c(
+  1,2,4,
+  2,3,5,
+  4,5,6
+  )
+S = matrix(S,3,3,T)
+S
+ST=t(S)
+ST
+SST = S %*% ST
+SST
+STS = ST %*% S
+STS
+SST == STS
+```
+
+
+For example, consider:    
+
+$$ S = `r writeMatrix(S)` ; S^{T} = `r writeMatrix(ST)`$$
+$$ SS^{T} = `r writeMatrix(S)` `r writeMatrix(ST)` = `r writeMatrix(SST)`$$
+$$ S^{T}S = `r writeMatrix(ST)` `r writeMatrix(S)` = `r writeMatrix(STS)`$$
+
+
+
+***
+
+
+Also this is true for **orthogonal** matrices because, by definition,   ${A^{T} = A^{-1}det(A)}$ ,   
+so $${ AA^{T} = AA^{-1}*det(A)=I*{det(A)}=A^{-1}A*det(A)=A^{T}A}$$    .    
+     
+    
+### ORTHOGONAL EXAMPLE:      
+```{r orthogonal,eval=T}
+
+X = c(
+  1,-1,
+  1,1
+  )
+X=matrix(X,2,2,T)
+X
+# Compute transpose of X
+XT=t(X)
+XT
+# Compute inverse of X
+Xinv = inv(X)
+Xinv
+# Compute determinant of X
+Xdet = det(X)
+Xdet
+# Compute XXT
+XXT = X %*% XT
+XXT
+# Compute XTX
+XTX = XT %*% X
+XTX
+# Do the entries match?
+XXT == XTX
+```
+
+  
+For example, consider **orthogonal** matrix ${X = `r writeMatrix(X)`}$ which has transpose ${X^{T} = `r writeMatrix(XT)`}$  . Here,        
+${XX^{T}= `r writeMatrix(X)` `r writeMatrix(XT)` = `r writeMatrix(XXT)`}$     
+${X^{T}X= `r writeMatrix(XT)` `r writeMatrix(X)` = `r writeMatrix(XTX)`}$
+
+Note that we can make the above matrix **orthonormal** by dividing it by the square root of its determinant, which here is 2.    
+
+    
+### ORTHONORMAL EXAMPLE:        
+```{r orthonormal,eval=T}
+
+# make orthonormal
+O = X / sqrt(det(X))
+O
+# compute transpose
+OT=t(O)
+OT
+# Compute inverse
+Oinv = inv(O)
+Oinv
+# does transpose "equal" inverse (up to machine precision?)
+OT - Oinv
+abs(OT-Oinv) < 1e-12
+# Compute OOT
+OOT = O %*% OT
+OOT
+# Compute OTO
+OTO = OT %*% O
+OTO
+# do the entries match?
+OOT == OTO
+```
+
+
+For example, consider **orthonormal** matrix ${O = `r wnumMatrix(O)`}$ which has transpose ${O^{T} = `r wnumMatrix(OT)`}$  .   
+Here,       
+${OO^{T}= `r wnumMatrix(O)` `r wnumMatrix(OT)` = `r wnumMatrix(OOT)`} = I_2$     
+   
+${O^{T}O= `r wnumMatrix(OT)` `r wnumMatrix(O)` = `r wnumMatrix(OTO)`} = I_2$
+   
+   
+***   
+
+
+However, the above items do not include **all** matrices for which the transpose commutes under multiplication.    
+
+By the **Spectral Theorem**, the full set of matrices for which the transpose commutes are called **Normal** Matrices.  These are discussed in the text book in sections NM and OD (pages 574-580.)
+
+By **Theorem OD (Orthonormal Diagonalization)** on page 575, we have:   
+
+Suppose that $A$ is a square matrix. Then there is a **unitary** matrix $U$ and a **diagonal** matrix $D$, *with diagonal entries equal to the eigenvalues of* $A$, such that $U^TAU = D$ if and only if $A$ is a **normal** matrix.   
+
+(Note: for matrices with **all real** entries, **unitary** is synonymous with **orthonormal** , and above I have used $U^T$ to indicate **transpose**, which for real matrices is the same as the **adjoint.**  The distinction only comes into play in the case of matrices with **complex** entries.)
+
+### NORMAL example (non-symmetric, etc.):
+
+```{r normal-matrices,eval=T}
+
+Z = c(
+  1,1,0,
+  0,1,1,
+  1,0,1)
+Z = matrix(Z,3,3,T)
+Z
+# Compute transpose
+ZT=t(Z)
+ZT
+# Compute ZZT
+ZZT = Z %*% ZT
+ZZT
+# Compute ZTZ
+ZTZ = ZT %*% Z
+ZTZ
+# Are they equal?
+ZZT==ZTZ
+
+```
+
+For example, consider a **normal** matrix which is neither symmetric nor orthogonal:    
+
+
+$$ Z = `r writeMatrix(Z)` ; Z^{T} = `r writeMatrix(ZT)`$$
+$$ ZZ^{T} = `r writeMatrix(Z)` `r writeMatrix(ZT)` = `r writeMatrix(ZZT)`$$
+$$ Z^{T}Z = `r writeMatrix(ZT)` `r writeMatrix(Z)` = `r writeMatrix(ZTZ)`$$
+
+
+***
+
+# Part 2 - Matrix Decomposition - LU
+
+#### Matrix factorization is a very important problem. 
+There are supercomputers built just to do matrix factorizations. 
+Every second you are on an airplane, matrices are being factorized. 
+Radars that track flights use a technique called Kalman filtering. 
+At the heart of Kalman Filtering is a Matrix Factorization operation. 
+Kalman Filters are solving linear systems of equations when they track your flight using radars. 
+
+## Write an R function to factorize a square matrix A into LU or LDU, whichever you prefer. 
+
+Please submit your response in an R Markdown document using our class naming convention, 
+e.g. LFulton_Assignment2_PS2.Rmd
+You don’t have to worry about permuting rows of A and you can assume that A is less than 5x5, if you need to hard-code any variables in your code. 
+If you doing the entire assignment in R, then please submit only one markdown document for both the problems.    
+
+### MYLU function:
+```{r MYLU}
+library(pracma)                       # to get functions like eye(), zeros(), ones()
+debug=FALSE
+
+MYLU = function (A) {
+
+  n <- nrow(A);                       # how many rows (and, columns) are in the (square) matrix?
+  L <- eye(n)                         # start L from the identity matrix
+  U <- eye(n)                         # start U from the identity matrix
+  
+  for (k in 1:n) {
+    if(debug) print(paste0("for k: ",k))
+    U[k,k] <- A[k,k];
+    for (i in (k+1):n) {
+      if (i>n) break
+      if(debug) print(paste0("(k,i): (", k,",",i,")"))
+      L[i,k] <- (A[i,k])/(U[k,k]);
+      U[k,i] <-  A[k,i]  
+    }
+    for (i in ((k+1):n)) {
+      if (i>n) break
+      if(debug) print(paste0("(k,i): (", k,",",i,")"))
+      for (j in ((k+1):n)) {
+        if (j>n) break
+        if(debug) print(paste0("(k,i,j): (", k,",",i,",",j,")"))
+        A[i,j] <- A[i,j] - L[i,k] %*% U[k,j];
+      }
+    }
+  }
+      
+  myresult <- list(L,U)
+  names(myresult) <- c("L","U")
+  
+  return(myresult)
+
+} # end function MYLU
+```
+
+
+### Test a constructed 3x3 matrix
+
+```{r test-MYLU1, eval=T}
+# Create an upper triangular matrix
+testU1 <- c(
+  1,1,1,
+  0,1,1,
+  0,0,1)
+testU1 <- matrix(testU1,3,3,T) 
+testU1
+det(testU1)
+inv(testU1)
+
+#Create a lower triangular matrix
+testL1 <- c(
+  1,0,0,
+  1,1,0,
+  1,1,1
+  )
+testL1 <- matrix(testL1,3,3,T)
+testL1
+det(testL1)
+inv(testL1)
+
+# Multiply together to get a matrix for testing
+testLU1 <- testL1 %*% testU1
+testLU1
+
+```
+
+Testing matrix ${`r writeMatrix(testLU1)`}$  :
+
+#### Get the result using my LU algorithm
+
+```{r test-MYLU1a, eval=T}
+myresult1 <- MYLU(testLU1)
+myresult1
+```
+
+My result is $$L = `r writeMatrix(myresult1$L)`  ; U = `r writeMatrix(myresult1$U)` ; LU = `r writeMatrix(myresult1$L %*% myresult1$U)` $$
+
+```{r test-MYLU1b, eval=T}
+# do my L and U match original L and U ?
+myresult1$L == testL1
+myresult1$U == testU1
+```
+
+#### Check using lu decomposition function from pracma
+```{r test-MYLU1c}
+library(pracma)
+theirresult1 <- pracma::lu(testLU1)
+theirresult1
+
+myresult1
+```
+
+Pracma result is $$L = `r writeMatrix(theirresult1$L)`  ; U = `r writeMatrix(theirresult1$U)`; LU = `r writeMatrix(theirresult1$L %*% theirresult1$U)` $$
+
+```{r test-MYLU1d, eval=T}
+
+
+# Does my result match their result?
+myresult1$L == theirresult1$L
+myresult1$U == theirresult1$U
+```
+
+
+### Test a constructed 5x5 matrix
+
+
+```{r test-MYLU2, eval=T}
+# Create an upper triangular matrix
+testU2 <- c(
+  1,2,3,4,5,
+  0,2,3,4,5,
+  0,0,3,4,5,
+  0,0,0,4,5,
+  0,0,0,0,5
+  )
+testU2 <- matrix(testU2,5,5,T) 
+testU2
+det(testU2)
+inv(testU2)
+
+#Create a lower triangular matrix
+testL2 <- c(
+  1,0,0,0,0,
+  1,1,0,0,0,
+  1,1,1,0,0,
+  1,1,1,1,0,
+  1,1,1,1,1
+  )
+testL2 <- matrix(testL2,5,5,T)
+testL2
+det(testL2)
+inv(testL2)
+
+# Multiply together to get a matrix for testing
+testLU2 <- testL2 %*% testU2
+testLU2
+
+```
+
+Testing matrix ${`r writeMatrix(testLU2)`}$  :
+
+#### Get the result using my LU algorithm
+
+```{r test-MYLU2a, eval=T}
+# Get the result using my LU algorithm
+myresult2 <- MYLU(testLU2)
+myresult2
+```
+
+My result is $$L = `r writeMatrix(myresult2$L)`  ; U = `r writeMatrix(myresult2$U)`; LU = `r writeMatrix(myresult2$L %*% myresult2$U)` $$
+
+```{r test-MYLU2b, eval=T}
+
+# do my L and U match original L and U ?
+myresult2$L == testL2
+myresult2$U == testU2
+
+
+# Check using lu decomposition function from pracma
+library(pracma)
+theirresult2 <- pracma::lu(testLU2)
+theirresult2
+
+```
+
+Pracma result is $$L = `r writeMatrix(theirresult2$L)`  ; U = `r writeMatrix(theirresult2$U)`; LU = `r writeMatrix(theirresult2$L %*% theirresult2$U)` $$
+
+```{r test-MYLU2d, eval=T}
+
+
+# Does my result match their result?
+myresult2$L == theirresult2$L
+myresult2$U == theirresult2$U
+```
+
+
+
+
+
+### Test a different 5x5 matrix
+
+
+```{r test-MYLU3, eval=T}
+# Create an upper triangular matrix
+testU3 <- c(
+  9,3,2,4,1,
+  0,6,9,-3,5,
+  0,0,4,2,-1,
+  0,0,0,7,5,
+  0,0,0,0,-12
+  )
+testU3 <- matrix(testU3,5,5,T) 
+testU3
+det(testU3)
+inv(testU3)
+
+#Create a lower triangular matrix
+testL3 <- c(
+  1,0,0,0,0,
+  -1,1,0,0,0,
+  99,5,1,0,0,
+  101,22,-66,1,0,
+  77,-55,33,-22,1
+  )
+testL3 <- matrix(testL3,5,5,T)
+testL3
+det(testL3)
+inv(testL3)
+
+# Multiply together to get a matrix for testing
+testLU3 <- testL3 %*% testU3
+testLU3
+
+```
+
+Testing matrix ${`r writeMatrix(testLU3)`}$  :
+
+#### Get the result using my LU algorithm
+
+```{r test-MYLU3a, eval=T}
+# Get the result using my LU algorithm
+myresult3 <- MYLU(testLU3)
+myresult3
+```
+
+My result is $$L = `r writeMatrix(myresult3$L)`  ; U = `r writeMatrix(myresult3$U)` ; LU = `r writeMatrix(myresult3$L %*% myresult3$U)` $$
+
+```{r test-MYLU3b, eval=T}
+
+
+# do my L and U match original L and U ?
+myresult3$L == testL3
+myresult3$U == testU3
+
+
+# Check using lu decomposition function from pracma
+library(pracma)
+theirresult3 <- pracma::lu(testLU3)
+theirresult3
+
+```
+
+Pracma result is $$L = `r writeMatrix(theirresult3$L)`  ; U = `r writeMatrix(theirresult3$U)` ; LU = `r writeMatrix(theirresult3$L %*% theirresult3$U)` $$
+
+```{r test-MYLU3d, eval=T}
+
+# Does my result match their result?
+myresult3$L == theirresult3$L
+myresult3$U == theirresult3$U
+```
+
+
+#### In each of the examples tested, MYLU gives the same results as the LU function from the pracma package.
+#### Such results successfully decompose the tested matrix back into the L and U constituents from which it was constructed.
