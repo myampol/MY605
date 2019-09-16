@@ -1,0 +1,443 @@
+---
+title: "605-HW03-Eigenvectors"
+author: "Michael Y."
+date: "September 15, 2019"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+classoption: portrait
+editor_options:
+  chunk_output_type: inline
+---
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>---
+
+#### Setup
+```{r setup, eval=T, echo=F}
+knitr::opts_chunk$set(echo = TRUE)
+directory = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20190915_Week03/"
+knitr::opts_knit$set(root.dir = directory)
+
+### Make the output wide enough
+options(scipen = 999, digits=6, width=120)
+
+### Load some libraries
+library(tidyr)
+library(dplyr)
+library(kableExtra)
+library(pracma)
+
+```
+
+``` {r writemtx, eval=T, echo=F}
+#### Function to write Matrix, courtesy of Vinayak Patel :
+writeMatrix <- function(x) {  
+  begin <- "\\begin{bmatrix}"  
+  end   <- "\\end{bmatrix}"  
+  X     <-    apply(x, 1, function(x) {
+      paste(
+          paste(x, collapse = "&"),
+          "\\\\"
+      )
+    }
+  )  
+  paste(c(begin, X, end), 
+        collapse = "")
+  }
+```
+
+\newpage
+## Part 1 - Matrix Rank
+
+### (1) What is the rank of the matrix A?
+```{r rankA, eval=T, echo=F}
+A = c(
+ 1, 2,  3,  4,
+-1, 0,  1,  3, 
+ 0, 1, -2,  1,
+ 5, 4, -2, -3
+)
+A=matrix(A,nrow=4,byrow=T)
+A
+```
+$$ A = `r writeMatrix(A)` $$
+```{r is-A-full-rank, eval=T}
+#B has a non-zero determinant, so it is non-singular, invertible, and full-rank:
+det(A)
+
+# All 4 rows of the Row-Reduced Echelon Form are non-zero:
+rref(A)
+
+# The calculated matrix rank:
+library(matrixcalc)
+matrix.rank(A)
+```
+
+Because ${A}$ is a square matrix with non-zero determinant, it is full rank, i.e., **rank = 4** .   
+This is confirmed as the Row-Reduced Echelon Form contains 4 non-zero rows.  
+
+### (2) Given an mxn matrix where m > n, what can be the maximum rank? 
+
+The maximum rank is ${maxrank = min(m,n)}$ , which in this case is the number of columns, ${n}$, as there are more rows than columns.
+
+#### The minimum rank, assuming that the matrix is non-zero?
+
+The minimum rank is 1.
+
+
+### (3) What is the rank of matrix ${B}$ ?  
+
+``` {r part3, eval-T, echo=F}
+B =
+c(
+1, 2, 1,
+3, 6, 3,
+2, 4, 2
+)
+B = matrix(B, nrow=3,byrow=T)
+B
+```
+
+
+$$ B = `r writeMatrix(B)` $$
+
+```{r checkB}
+#B has a zero determinant, so it is singular, non-invertible, and less than full-rank.
+det(B)
+
+# Row-Reduced echolon form shows a single non-zero row:
+rref(B)
+
+# calculated rank is 1:
+matrix.rank(B)
+
+Bcol1 = as.matrix(B[,1])
+```
+
+B has only a single independent column:    ${ `r writeMatrix(Bcol1)`}$  .    
+The third column is the same as the first, and the middle column is double the first.    
+Also, the number of non-zero rows in the row-echelon form is 1.  
+**Therefore, the matrix ${B}$ has rank 1.**   
+
+
+***
+\newpage
+## Part 2 - Eigenvalues and Eigenvectors
+
+### Compute the eigenvalues and eigenvectors of the matrix ${A}$ .     
+
+You'll need to show your work.   
+You'll need to write out the characteristic polynomial and show your solution.   
+
+```{r 2matrixA, eval=T}
+A =
+c(
+1, 2, 3,
+0, 4, 5,
+0, 0, 6
+)
+A = matrix(A,nrow=3,byrow=T)
+A
+```
+
+$$ A = `r writeMatrix(A)` $$ 
+$$ Ax = \lambda x $$
+$$ Ax - \lambda x = 0 $$
+$$ \left(A-\lambda I \right)x = 0 $$
+
+$$ `r writeMatrix(A)` - \begin{bmatrix} \lambda  & 0 & 0 \\ 0 & \lambda  & 0 \\ 0 & 0 & \lambda  \end{bmatrix}  = 0 $$
+$$ \begin{bmatrix} 1-\lambda  & 2 & 3 \\ 0 & 4-\lambda  & 5 \\ 0 & 0 & 6-\lambda  \end{bmatrix} x = 0 $$
+
+$$ det \begin{bmatrix} 1-\lambda  & 2 & 3 \\ 0 & 4-\lambda  & 5 \\ 0 & 0 & 6-\lambda  \end{bmatrix} = 0 $$
+Because the matrix is upper triangular, the determinant equals the product of the diagonal entries:
+
+$$ (1-\lambda) (4-\lambda)(6-\lambda) = 0  $$
+The characteristic polynomial is ${24-34x+11x^2-x^3}=0$, but we can easily see from the factored form above that the eigenvalues are ${\lambda \in \{6,4,1\}}$ .
+
+\newpage
+
+### Eigenvector for $\lambda=6$ :
+
+$$ \begin{bmatrix} 
+1-\lambda  & 2 & 3 \\ 
+0 & 4-\lambda  & 5 \\ 
+0 & 0 & 6-\lambda  
+\end{bmatrix}
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}
+=\lambda \begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}\\ $$
+
+$$ \begin{bmatrix} 
+1-6 & 2 & 3 \\ 
+0 & 4-6 & 5 \\ 
+0 & 0 & 6-6 
+\end{bmatrix}
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}
+=\begin{bmatrix} 
+-5 & 2 & 3 \\ 
+0 & -2 & 5 \\ 
+0 & 0 & 0 
+\end{bmatrix}
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}=0 $$
+
+
+$$ \begin{cases} -5x_{ 1 }+2x_{ 2 }+3x_{ 3 }=0 \\ 0x_{ 1 }-2x_{ 2 }+5x_{ 3 }=0 \\ 0x_{ 1 }+0x_{ 2 }+0x_{ 3 }=0 \end{cases}\\ $$
+
+$$ \Rightarrow \begin{cases} 
+-5x_{ 1 }+5x_{ 3 }+3x_{ 3 }=0 \\ 
+5x_{ 3 }=2x_{ 2 } 
+\end{cases}\\
+\Rightarrow 
+\begin{cases} 
+x_{ 2 }=\frac { 5x_{ 3 } }{ 2 }  \\ 
+5x_{ 1 }=8x_{ 3 } 
+\end{cases}\\
+\Rightarrow 
+\begin{cases} 
+x_{ 2 }=\frac { 5x_{ 3 } }{ 2 } =2.5(x_{ 3 }) \\ 
+x_{ 1 }=\frac { 8 }{ 5 } 
+x_{ 3 }=1.6(x_{ 3 }) 
+\end{cases}\\  
+\Rightarrow 
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}=\begin{bmatrix} 1.6 \\2.5 \\ 1.0 \end{bmatrix}\\\\ $$
+
+Check:
+```{r check-eig6,eval=T}
+# Eigenvector for lambda = 6
+x6 = c(1.6,2.5,1)
+x6
+
+# Ax / 6
+result6 = (A %*% x6) / 6
+result6
+
+# Ax - 6x
+result6 - x6
+
+# Is this result zero?
+result6 - x6 < 1e-10
+
+# Normalize this result
+sumsq_x6 = sum(x6^2)
+sumsq_x6
+x6_norm = x6 / sqrt(sumsq_x6)
+x6_norm
+```
+
+#### Normalized Eigenvector for lambda = 6:
+
+$$ \begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}
+=\begin{bmatrix} 1.6 \\2.5 \\ 1.0 \end{bmatrix} \cdot \frac{1}{\sqrt{9.81}}
+=\begin{bmatrix} .510841 \\ .798189 \\ .319275 \end{bmatrix} $$
+
+
+
+\newpage
+
+### Eigenvector for $\lambda=4$ :
+
+$$ \begin{bmatrix} 
+1-4 & 2 & 3 \\ 
+0 & 4-4 & 5 \\ 
+0 & 0 & 6-4 
+\end{bmatrix}
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}
+=\begin{bmatrix} 
+-3 & 2 & 3 \\ 
+0 & 0 & 5 \\ 
+0 & 0 & 2 
+\end{bmatrix}
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}=0 $$
+
+$$ \begin{cases} 
+-3x_{ 1 }+2x_{ 2 }+3x_{ 3 }=0 \\ 
+0x_{ 1 }+0x_{ 2 }+5x_{ 3 }=0 \\ 
+0x_{ 1 }+0x_{ 2 }+2x_{ 3 }=0 
+\end{cases} 
+\Rightarrow 
+\begin{cases} 
+x_{ 3 }=0 \\
+-3x_{ 1 }+2x_{ 2 }=0 
+\end{cases} 
+\Rightarrow 
+\begin{cases} 
+x_{ 3 }=0 \\
+3x_{ 1 }=2x_{ 2 } 
+\end{cases}
+\Rightarrow 
+\begin{cases} 
+x_{ 3 }=0 \\
+x_{ 1 }=\frac{2x_{ 2 }}{3} 
+\end{cases}\\
+\Rightarrow
+\begin{bmatrix} 
+x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } 
+\end{bmatrix}
+=\begin{bmatrix} 2 \\3 \\ 0 
+\end{bmatrix}\\\\ $$
+
+```{r check-eig4,eval=T}
+# Eigenvector for lambda = 4
+x4 = c(2,3,0)
+x4
+
+# Ax / 4
+result4 = (A %*% x4) / 4
+result4
+
+# Ax - 4x
+result4 - x4
+
+# Is this result zero?
+result4 - x4 < 1e-10
+
+# Normalize this result
+sumsq_x4 = sum(x4^2)
+sumsq_x4
+x4_norm = x4 / sqrt(sumsq_x4)
+x4_norm
+```
+
+
+#### Normalized Eigenvector for lambda = 4:
+
+$$ \begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}
+=\begin{bmatrix} 2 \\3 \\ 0 \end{bmatrix} \cdot \frac{1}{\sqrt{13}}
+=\begin{bmatrix} .55470 \\ .83205 \\ 0 \end{bmatrix} $$
+
+
+
+
+\newpage
+
+### Eigenvector for $\lambda=1$ :
+
+$$ \begin{bmatrix} 
+1-1 & 2 & 3 \\ 
+0 & 4-1 & 5 \\ 
+0 & 0 & 6-1 
+\end{bmatrix}
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}
+=\begin{bmatrix} 
+0 & 2 & 3 \\ 
+0 & 3 & 5 \\ 
+0 & 0 & 5 
+\end{bmatrix}
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}=0 $$
+
+$$ \begin{cases} 
+0x_{ 1 }+2x_{ 2 }+3x_{ 3 }=0 \\ 
+0x_{ 1 }+3x_{ 2 }+5x_{ 3 }=0 \\ 
+0x_{ 1 }+0x_{ 2 }+5x_{ 3 }=0 
+\end{cases} 
+\Rightarrow 
+\begin{cases} 
+x_{ 3 }=0 \\
+x_{ 2 }=0 \\
+x_{ 1 }=1 
+\end{cases}\\ 
+\Rightarrow
+\begin{bmatrix} x_{ 1 } \\ x_{ 2 } \\ x_{ 3 } \end{bmatrix}=\begin{bmatrix} 1 \\0 \\ 0 \end{bmatrix}\\\\ $$
+
+Check:
+
+```{r check-eig1,eval=T}
+# Eigenvector for lambda = 1
+x1 = c(1,0,0)
+x1
+
+# Ax / 1
+result1 = (A %*% x1) / 1
+result1
+
+# Ax - 1x
+result1 - x1
+
+# Is this result zero?
+result1 - x1 < 1e-10
+
+# Normalize this result
+sumsq_x1 = sum(x1^2)
+sumsq_x1
+x1_norm = x1 / sqrt(sumsq_x1)
+x1_norm
+```
+
+#### My eigenvectors
+
+```{r myeigvecs, eval=T}
+myeigvecs = cbind(x6_norm, x4_norm, x1_norm)
+myeigvecs
+```
+
+My normalized eigenvectors (each column):  ${`r writeMatrix(myeigvecs)`}$
+
+\newpage
+
+### Check results vs. eigen() function
+
+```{r check-Eigen, eval=T}
+result = eigen(A)
+eigvals = result$values
+eigvecs = result$vectors
+```
+
+$$ Eigenvalues:  \lambda = `r writeMatrix(as.matrix(eigvals))` $$
+$$ Eigenvectors: x = `r writeMatrix(as.matrix(eigvecs))` $$
+
+```{r check-Eigen2, eval=T}
+# Check if Ax[i] = lambda[i] x[i]
+lhs = rhs = difference = rep.int(list(NULL),3)
+lhstext = rhstext = difftext = rep.int(list(NULL),3)
+
+#whicheig = 1
+for (whicheig in 1:3) {
+
+lhstext[[whicheig]] = paste0("A x_{",whicheig,"}")  
+lhs[[whicheig]] = A %*% eigvecs[,whicheig]
+
+rhstext[[whicheig]] = paste0(eigvals[whicheig]," x_{",whicheig,"}")  
+rhs[[whicheig]] = as.matrix(eigvals[whicheig] * eigvecs[,whicheig])
+
+difference[[whicheig]] = lhs[[whicheig]] - rhs[[whicheig]]
+
+}
+```
+$$ Checking \quad A  x_{1} = \lambda_{1}  x_{1}  \quad : \quad  \lambda_{1} = `r eigvals[1]` \quad ; \quad x_{1} = `r writeMatrix(as.matrix(eigvecs[,1]))` $$
+$$ `r lhstext[[1]]`  =  `r writeMatrix(lhs[[1]])` \quad ; \quad `r rhstext[[1]]`  =  `r writeMatrix(rhs[[1]])`  \quad ; \quad diff = `r writeMatrix(difference[[1]])` $$
+
+$$ Checking \quad A x_{2} = \lambda_{2} x_{2}   \quad : \quad  \lambda_{2} = `r eigvals[2]` \quad ; \quad x_{2} = `r writeMatrix(as.matrix(eigvecs[,2]))` $$
+$$ `r lhstext[[2]]`  =  `r writeMatrix(lhs[[2]])` \quad ; \quad `r rhstext[[2]]`  =  `r writeMatrix(rhs[[2]])`  \quad ; \quad diff = `r writeMatrix(difference[[2]])` $$
+
+$$ Checking \quad A x_{3} = \lambda_{3} x_{3}  \quad : \quad  \lambda_{3} = `r eigvals[3]` \quad ; \quad x_{3} = `r writeMatrix(as.matrix(eigvecs[,3]))` $$
+$$ `r lhstext[[3]]`  =  `r writeMatrix(lhs[[3]])` \quad ; \quad `r rhstext[[3]]`  =  `r writeMatrix(rhs[[3]])`  \quad ; \quad diff = `r writeMatrix(difference[[3]])` $$
+
+#### Comparing my eigenvectors with those from eigen() :
+```{r finalcompare, eval=T}
+### my eigenvectors
+myeigvecs
+
+### eigvecs from eigen()
+eigvecs
+
+### difference
+myeigvecs - eigvecs
+
+### Equal to zero?
+myeigvecs - eigvecs < 1e-10
+```
+
+
+Please show your work using an R-markdown document. 
+Please name your assignment submission with your first initial and last name.
+
