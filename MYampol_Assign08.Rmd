@@ -1,0 +1,213 @@
+---
+title: "605-HW08-Sums-of-RVs-Law-of-Large-Numbers"
+author: "Michael Y."
+date: "October 20, 2019"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+classoption: portrait
+editor_options:
+  chunk_output_type: inline
+header-includes: 
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>
+
+---
+
+
+```{r setup, eval=T, echo=F}
+# Setup
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.pos='H')
+directory = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20191020_Week08/"
+knitr::opts_knit$set(root.dir = directory)
+
+### Make the output wide enough
+options(scipen = 999, digits=12, width=150)
+
+### load some libraries
+library(kableExtra)
+```
+
+
+\newpage
+# HW8 - Sums of RVs; Law of Large Numbers
+
+
+## Problem 11 on page 303:
+
+### Exponential lifetime of lightbulbs
+
+#### A company buys 100 lightbulbs, each of which has an exponential lifetime of 1000 hours.    
+
+#### What is the expected time for the first of these bulbs to burn out? (See Exercise 10.)    
+
+According to exercise 10:    
+
+Let $X_1, X_2, . . . , X_n$ be $n$ independent random variables each of which has an exponential density with mean $\mu$.    
+Let $M$ be the minimum value of the $X_j$ .    
+Show that the density for $M$ is exponential with mean $\frac{\mu}{n}$.     
+Hint: Use cumulative distribution functions.    
+
+So, we have $n=100$ exponential variables, each representing the lifetime of a lightbulb, where the average lightbulb has a lifetime of 1000 hours, which is distributed exponentially across the set of lightbulbs (independent and identically distributed.)   
+
+The time for the first lightbulb to burn out is thus the minimum of this set.   
+
+Because the lifetime of each lightbulb is exponentially distributed, we know that the probability that any individual lightbulb has **not** burned out by time $M=m$ is $Pr(X_i>m) = e^{-\lambda m}$ , where $\lambda = \frac{1}{\mu} = \frac{1}{1000}$ .    
+
+We know that the probability that **no** lightbulb has burned out by time $M=m$ is   
+$$\begin{aligned}
+Pr(X_1 > m) \cdot Pr(X_2 > m) \cdot ... \cdot Pr(X_n > m) &= e^{-\lambda m} \cdot e^{-\lambda m} \cdot ... \cdot e^{-\lambda m} \\
+&= (e^{-\lambda m})^n \\
+&= e^{-\lambda m n} \\
+&= e^{-\frac{m \cdot n}{\mu}} \\
+&= e^{-\frac{m \cdot 100}{1000}} \\
+&= e^{-\frac{m}{10}}  
+\end{aligned}$$
+
+The above is the probability that **no** bulb has burned out by time $M=m$.   
+
+Therefore the probability that the **first** bulb has burned out by time $M=m$ is $Pr(M \le m) = 1- e^{-\frac{m}{10}}$ .   
+
+This is an exponential distribution with $\lambda = \frac{1}{\mu} = \frac {1}{10}$ .    
+
+Therefore, the expected time for the first of these bulbs to burn out is 10 hours.   
+
+***
+\newpage
+
+## Problem 14 on page 303:
+
+### Distribution of difference of two exponentials
+
+#### Assume that $X_1$ and $X_2$ are independent random variables, each having an exponential density with parameter $\lambda$. 
+#### Show that $Z = X_1 - X_2$ has density $f_Z(z) = \frac{1}{2}\lambda e^{-\lambda|z|}$ .
+
+We have 
+${\displaystyle f(x_1;\lambda )={\begin{cases}\lambda e^{-\lambda x_1}&x_1\geq 0,\\0&x_1<0.\end{cases}}}$ and 
+${\displaystyle f(x_2;\lambda )={\begin{cases}\lambda e^{-\lambda x_2}&x_2\geq 0,\\0&x_2<0.\end{cases}}}$ .
+
+By independence, the joint PDF is 
+${\displaystyle f(x_1,x_2;\lambda )={\begin{cases}\lambda^2 e^{-\lambda x_1}e^{-\lambda x_2}&x_1,x_2\geq 0,\\0&(x_1<0) \vee (x_2<0).\end{cases}}}$ .    
+
+Let $Z = X_1 - X_2$ . Because this is a difference, Z can be positive or negative.      
+
+We seek $F_Z(z)=Pr(Z \le z)$ where $-\infty < z < \infty$ .    
+
+In the case where $z \le 0$, the CDF is:    
+$$
+\begin{aligned}
+F_Z(z) &= Pr(Z \le z) \\
+&= Pr(X_1 - X_2 \le z) \\
+&= Pr(X_2 \ge X_1 - z) \\
+&= \int_0^\infty  \int_{x_1-z}^\infty f_{X_1,X_2}(x_1,x_2)dx_2 dx_1 \\
+&= \int_0^\infty  \int_{x_1-z}^\infty \lambda^2 e^{-\lambda x_1}e^{-\lambda x_2}dx_2 dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} \left[\int_{x_1-z}^\infty \lambda e^{-\lambda x_2}dx_2 \right]dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} \left[-e^{-\lambda x_2} \right]_{x_1-z}^\infty    dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} \left[-0+e^{-\lambda {(x_1-z)}} \right]  dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} e^{-\lambda {(x_1-z)}}   dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda {(2x_1-z)}}   dx_1 \\
+&= e^{\lambda z}\int_0^\infty  \lambda e^{-\lambda {(2x_1)}}   dx_1 \\
+&= e^{\lambda z} \cdot \frac{1}{2} \\
+\end{aligned}
+$$
+
+Differentiating, $f_Z(z) = \frac{\lambda e^{\lambda z}}{2}$ for $z < 0$ .
+
+
+In the case where $z > 0$, the CDF is:    
+
+$$
+\begin{aligned}
+F_Z(z) &= Pr(Z \le z) \\
+&= 1-Pr(Z > z) \\
+&= 1-Pr(X_1 - X_2 > z) \\
+&= Pr(X_2 \ge X_1 + z) \\
+&= \int_0^\infty  \int_0^{x_1+z} f_{X_1,X_2}(x_1,x_2)dx_2 dx_1 \\
+&= \int_0^\infty  \int_0^{x_1+z} \lambda^2 e^{-\lambda x_1}e^{-\lambda x_2}dx_2 dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} \left[\int_0^{x_1+z} \lambda e^{-\lambda x_2}dx_2 \right]dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} \left[1-e^{-\lambda x_2} \right]_0^{x_1+z} dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} \left[1-e^{-\lambda {(x_1+z)}}-(1-1) \right]  dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} \left[1-e^{-\lambda {(x_1+z)}} \right]  dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} -\lambda e^{-\lambda x_1}e^{-\lambda {(x_1+z)}} dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} -\lambda e^{-2\lambda x_1}e^{-\lambda z} dx_1 \\
+&= \int_0^\infty  \lambda e^{-\lambda x_1} -\int_0^\infty  \lambda e^{-2\lambda x_1}e^{-\lambda z} dx_1 \\
+&= 1 -e^{-\lambda z}\int_0^\infty  \lambda e^{-2\lambda x_1} dx_1 \\
+&= 1-e^{-\lambda z}\int_0^\infty  \lambda e^{-2\lambda x_1} dx_1 \\
+&= 1-e^{-\lambda z} \frac{1}{2} \\
+&= 1-\int_0^\infty  \lambda e^{-\lambda x_1} e^{-\lambda {(x_1-z)}}   dx_1 \\
+&= 1-\int_0^\infty  \lambda e^{-\lambda {(2x_1-z)}}   dx_1 \\
+&= 1-e^{\lambda z}\int_0^\infty  \lambda e^{-\lambda {(2x_1)}}   dx_1 \\
+&= 1-e^{-\lambda z} \cdot \frac{1}{2} \\
+\end{aligned}
+$$
+
+Differentiating, $f_Z(z) = \frac{\lambda e^{-\lambda z}}{2}$ for $z \ge 0$ .
+
+
+Thus, the density for all z is $f_Z(z) = \frac{\lambda e^{-\lambda |z|}}{2}$
+
+This is the Laplace distribution, also known as the "Double Exponential" distribution.
+
+
+***
+\newpage
+
+## Problem 1 on page 320-321: Chebychev's inequality.
+
+#### Let $X$ be a continuous random variable with mean $\mu = 10$ and variance $\sigma^2 = \frac{100}{3}$ .    
+
+Chebychev's Inequality states that under the above conditions, $Pr(|X-\mu| \ge \epsilon) \le \frac{\sigma^2}{\epsilon^2} , \forall \epsilon>0$.   
+
+If $\epsilon = k\cdot \sigma$, this can be rewritten as  
+
+$Pr(|X-\mu| \ge k \cdot \sigma) \le \frac{\sigma^2}{k^2 \cdot \sigma^2}=\frac{1}{k^2} , \forall \epsilon>0$
+
+#### Using Chebyshev’s Inequality, find an upper bound for the following probabilities:
+
+### (a) $Pr(|X-10| \ge 2)$
+
+$\epsilon = 2 = k\cdot \sigma = k \cdot \sqrt{\frac{100}{3}}$
+$\epsilon^2 = 2^2=4=k^2 \cdot \frac{100}{3}$
+$\frac{1}{k^2} = \frac{100}{3\cdot4}=\frac{100}{12}=8.33333$
+
+Because probabilities cannot be greater than 1, the upper bound is 1.
+
+### (b) $Pr(|X-10| \ge 5)$
+
+$\epsilon = 5 = k\cdot \sigma = k \cdot \sqrt{\frac{100}{3}}$
+$\epsilon^2 = 5^2=25=k^2 \cdot \frac{100}{3}$
+$\frac{1}{k^2} = \frac{100}{3\cdot25}=\frac{100}{75}=1.33333$
+
+Because probabilities cannot be greater than 1, the upper bound is 1.
+
+### (c) $Pr(|X-10| \ge 9)$
+
+$\epsilon = 9 = k\cdot \sigma = k \cdot \sqrt{\frac{100}{3}}$
+$\epsilon^2 = 9^2=81=k^2 \cdot \frac{100}{3}$
+$\frac{1}{k^2} = \frac{100}{3\cdot81}=\frac{100}{243} \approx 0.4115$
+
+Thus, the upper bound is $\frac{100}{243} \approx 0.4115$.
+
+### (d) $Pr(|X-10| \ge 20)$
+
+$\epsilon = 20 = k\cdot \sigma = k \cdot \sqrt{\frac{100}{3}}$
+$\epsilon^2 = 20^2=400=k^2 \cdot \frac{100}{3}$
+$\frac{1}{k^2} = \frac{100}{3\cdot400}=\frac{100}{1200} \approx 0.083333$
+
+Thus, the upper bound is $\frac{1}{12} \approx 0.083333$.
