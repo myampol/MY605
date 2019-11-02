@@ -1,0 +1,371 @@
+---
+title: "605-HW10-MarkovChains-RandomWalks"
+author: "Michael Y."
+date: "November 3, 2019"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+classoption: portrait
+editor_options:
+  chunk_output_type: inline
+header-includes: 
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>
+
+---
+
+
+```{r setup, eval=T, echo=F}
+# Setup
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.pos='H')
+directory = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20191103_Week10/"
+knitr::opts_knit$set(root.dir = directory)
+
+### Make the output wide enough
+options(scipen = 999, digits=9, width=150)
+```
+
+```{r load, eval=T, message=F,warning=F}
+### load some libraries
+library(kableExtra)
+library(expm)      # needed for matrix power operator %^%
+```
+
+# HW10 - Markov Chains, Random Walks
+
+Smith is in jail and has 1 dollar; he can get out on bail if he has 8 dollars.      
+A guard agrees to make a series of bets with him. 
+
+If Smith bets A dollars,     
+
+* he wins A dollars with probability .4 ,     
+* and loses A dollars with probability .6 .        
+
+Find the probability that he wins 8 dollars before losing all of his money if:       
+
+(a) he bets 1 dollar each time (***timid strategy***).   
+
+(b) he bets, each time, as much as possible but not more than necessary to bring his fortune up to 8 dollars (***bold strategy***).    
+
+(c) Which strategy gives Smith the better chance of getting out of jail?    
+
+\newpage
+## (a) timid strategy
+
+The problem can be solved in multiple ways. Here are three:
+
+### (a1) Gambler's Ruin:
+This is the classic "Gambler's Ruin" problem, for which the solution is
+
+$P_i(N) = \frac{1-(\frac{q}{p})^i}{1-(\frac{q}{p})^N}$, if $p \ne q$ .
+
+Here, $i=1$ and $N=8$, so we get:
+
+```{r timid-strat, eval=T}
+p=0.4
+q=1-p
+i=1
+N=8
+numerator = 1-(q/p)^i
+denominator = 1-(q/p)^N
+result = numerator / denominator
+result
+```
+
+#### The probability of success under the "timid" strategy is `r round(result,4)` .
+
+\newpage
+### (a2) Absorbing Markov Chains:
+
+```{r timidgrid, eval=T}
+#### Probabilities of win or lose
+p=0.4
+q=1-p
+
+#### timid Markov transition probabilities
+nodes=0:8
+timidmarkov=matrix(
+  c(
+  1,0,0,0,0,0,0,0,0,
+  q,0,p,0,0,0,0,0,0,
+  0,q,0,p,0,0,0,0,0,
+  0,0,q,0,p,0,0,0,0,
+  0,0,0,q,0,p,0,0,0,
+  0,0,0,0,q,0,p,0,0,
+  0,0,0,0,0,q,0,p,0,
+  0,0,0,0,0,0,q,0,p,
+  0,0,0,0,0,0,0,0,1
+),nrow = 9, ncol = 9, byrow = T, dimnames = list(nodes,nodes)
+)
+
+#### timid markov matrix
+timidmarkov
+
+#### Canonical order, P
+canonicalorder=c("1","2","3","4","5","6","7","0","8")
+Ptimid=timidmarkov[canonicalorder,canonicalorder]
+Ptimid
+
+#### Canonical transitions, Q
+Qtimid = Ptimid[1:7,1:7]
+Qtimid
+
+#### Transient-to-absorbing, R
+Rtimid = Ptimid[1:7,8:9]
+Rtimid
+
+#### Identity matrix, I
+I = diag(7)
+I
+
+#### Identity minus Q
+ImQtimid = I-Qtimid
+ImQtimid
+
+#### N, the Fundamental Matrix
+Ntimid=solve(ImQtimid)
+Ntimid
+
+#### Expected time to absorption, basaed upon starting value
+c = rep(1,7)
+Nctimid = Ntimid %*% c
+Nctimid
+
+#### Absorption probabilities, B
+Btimid = Ntimid %*% Rtimid
+Btimid
+
+#### Probability of success, starting from 1 dollar:
+p1timid = Btimid["1","8"]
+p1timid
+```
+
+#### Again, the probability is `r round(p1timid,4)` .
+
+\newpage
+### (a3) Repeated matrix multiplications:
+```{r timid-markov}
+p=0.4
+q=1-p
+nodes=0:8
+timidmarkov=matrix(
+  c(
+  1,0,0,0,0,0,0,0,0,
+  q,0,p,0,0,0,0,0,0,
+  0,q,0,p,0,0,0,0,0,
+  0,0,q,0,p,0,0,0,0,
+  0,0,0,q,0,p,0,0,0,
+  0,0,0,0,q,0,p,0,0,
+  0,0,0,0,0,q,0,p,0,
+  0,0,0,0,0,0,q,0,p,
+  0,0,0,0,0,0,0,0,1
+),nrow = 9, ncol = 9, byrow = T, dimnames = list(nodes,nodes)
+)
+#### timid markov matrix
+timidmarkov
+
+timidresult    = vector()
+timidtransient = vector()
+timiddiff      = vector()
+epsilon = 1e-8
+
+#### Loop until absorption converges (transient states empty)
+for (i in 1:300) {
+  timidpower = timidmarkov %^% i                    # raise markov matrix to power i
+  timidresult[i]=timidpower["1","8"]                # get the probability of 1 --> 8 after i steps
+  timidtransient[i] = sum(colSums(timidpower)[2:7]) # add up probabilities of transient states
+  if (i>1)
+    timiddiff[i]=timidresult[i]-timidresult[i-1]    # change of probability vs. prior step
+  else timiddiff[i]=999                             # just for first step
+
+#  print(paste(i,
+#              round(timidtransient[i],12),
+#              round(timidresult[i],   9),
+#              round(timiddiff[i],        12)
+#              )
+#        )
+
+    if (timidtransient[i] < epsilon) {
+    print(paste("Absorbed at power ", i))
+    break
+  }
+}
+
+power = 1:i
+# results for each step
+tempresult = cbind(power, timidtransient, timidresult, timiddiff) 
+
+head(tempresult,15) %>% 
+  kable() %>% 
+kable_styling(c("striped","bordered"))
+
+tail(tempresult,15) %>% 
+  kable() %>% 
+kable_styling(c("striped","bordered"))
+
+# timid markov raised to power i
+print(paste("i: ",i))
+round(timidpower,8)
+
+# Timid result
+TimidProbability = round(timidresult[i],9)
+print(paste("Timid result: ",TimidProbability))
+```
+
+#### Yet again, the probability of winning with the timid strategy is `r round(TimidProbability,4)` .
+
+***
+\newpage
+## (b) bold strategy
+
+Here are three different ways to obtain the answer:
+
+### (b1) only three plays
+Under the Bold strategy, the prisoner bets his entire bankroll each time (as it's not possible to reach any value in $\{5,6,7\}$ when starting from 1 dollar.)    
+
+Thus, to win the game, he must win three times:    
+
+* Bet 1: 1 dollar increases to 2 dollars     
+* Bet 2: 2 dollars increases to 4 dollars     
+* Bet 3: 4 dollars increases to 8 dollars     
+
+A loss on any of the above bets will "wipe out" his bankroll, forcing him to stop playing.
+
+Because his chance of winning on each bet is 0.4, his chance of winning three times is $(0.4)^3 = 0.064$ .    
+
+#### Thus, his probability of winning under this strategy is 6.4 percent.
+
+\newpage
+### (b2) Absorbing Markov Chains:
+
+```{r boldgrid, eval=T}
+# Probabilities of win or lose
+p=0.4
+q=1-p
+
+# bold Markov transition probabilities
+nodes=0:8
+boldmarkov=matrix(
+  c(
+1,0,0,0,0,0,0,0,0,   # have zero - game lost
+q,0,p,0,0,0,0,0,0,   # have one -- bet one -- move to zero or two
+q,0,0,0,p,0,0,0,0,   # have two -- bet two -- move to zero or four
+q,0,0,0,0,0,p,0,0,   # have three -- bet THREE -- move to ZERO or SIX
+q,0,0,0,0,0,0,0,p,   # have four -- bet four -- move to zero or eight
+0,0,q,0,0,0,0,0,p,   # have five -- bet three -- move to two or eight
+0,0,0,0,q,0,0,0,p,   # have six -- bet two -- move to four or eight
+0,0,0,0,0,0,q,0,p,   # have seven -- bet one -- move to six or eight
+0,0,0,0,0,0,0,0,1),  # have eight -- game won
+nrow = 9, ncol = 9, byrow = T, dimnames = list(nodes,nodes)
+)
+# Canonical order, P
+canonicalorder=c("1","2","3","4","5","6","7","0","8")
+Pbold=boldmarkov[canonicalorder,canonicalorder]
+Pbold
+
+# Canonical transitions, Q
+Qbold = Pbold[1:7,1:7]
+Qbold
+
+# Transient-to-absorbing, R
+Rbold = Pbold[1:7,8:9]
+Rbold
+
+# Identity matrix, I
+I = diag(7)
+I
+
+# Identity minus Q
+ImQbold = I-Qbold
+ImQbold
+
+# N, the Fundamental Matrix
+Nbold=solve(ImQbold)
+Nbold
+
+# Expected time to absorption
+c = rep(1,7)
+Ncbold = Nbold %*% c
+Ncbold
+
+# Absorption probabilities, B
+Bbold = Nbold %*% Rbold
+Bbold
+
+# Probability of success, starting from 1 dollar:
+p1bold = Bbold["1","8"]
+p1bold
+```
+
+#### Again, the probability is `r round(p1bold,4)` .
+
+
+\newpage
+### (b3) Repeated matrix multiplications:
+```{r bold-markov}
+p=0.4
+q=1-p
+nodes=0:8
+boldmarkov
+boldmarkov
+boldresult = vector()
+boldtransient = vector()
+epsilon = 1e-8
+for (i in 1:10) {
+  boldpower = boldmarkov %^% i
+
+  # boldmarkov raised to power i
+  print(paste("i: ",i))
+  print(round(boldpower,8))
+  
+  boldresult[i]=boldpower["1","8"]
+  boldtransient[i] = sum(colSums(boldpower)[2:7])
+  if (i>1)
+    bolddiff=boldresult[i]-boldresult[i-1] 
+  else bolddiff=999
+
+  print(paste(i,round(boldtransient[i],10),round(boldresult[i],   8),round(bolddiff,10)))
+
+  if (boldtransient[i] < epsilon) {
+    print(paste("Absorbed at power ", i))
+    break
+  }
+
+}
+
+# Converged power matrix
+boldpower
+
+# Sums of columns
+print("Column sums: ")
+print(round(colSums(boldpower),8))
+
+# bold result
+print(paste("bold result: ",round(boldresult[i],8)))
+```
+
+#### The probability of winning with the bold strategy is `r round(boldresult[i],4)` .
+
+***
+\newpage
+## (c) best strategy
+
+#### The Bold strategy provides a higher probability (`r round(p1bold,4)`) of winning than the timid strategy (`r round(p1timid,4)`) .
+
+
