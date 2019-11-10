@@ -1,0 +1,182 @@
+---
+title: "605-HW11-Regression"
+author: "Michael Y."
+date: "November 10, 2019"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+classoption: portrait
+editor_options:
+  chunk_output_type: inline
+header-includes: 
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>
+
+---
+
+
+```{r setup, eval=T, echo=F}
+# Setup
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.pos='H')
+directory = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20191110_Week11/"
+knitr::opts_knit$set(root.dir = directory)
+
+### Make the output wide enough
+options(scipen = 999, digits=9, width=150)
+```
+
+```{r load, eval=T, message=F,warning=F, echo=F}
+### load some libraries
+library(datasets)
+library(kableExtra)
+```
+
+\newpage
+# HW11 - Regression
+
+Using the “cars” dataset in R, build a linear model for stopping distance as a function of speed and replicate the analysis of your textbook chapter 3 (visualization, quality evaluation of the model, and residual analysis.)
+
+```{r loaddata, eval=T,warning=F,message=F}
+cars <- datasets::cars
+attach(cars)
+# Summary of cars dataset
+summary(cars)
+numrows = dim(cars)[1]
+```
+ There are `r numrows` observations of speed and stopping distance.
+
+
+\newpage
+## 3.1 Visualize the Data
+### Scatterplot
+```{r visualize-data, eval=T}
+# scatterplot
+require(stats); require(graphics)
+plot(cars, xlab = "Speed (mph)", ylab = "Stopping distance (ft)", las = 1)
+title(main = "Cars dataset: Stopping distance vs. Speed")
+```
+
+\newpage
+### Boxplot
+```{r boxplot}
+bplot = boxplot(cars$dist,col = "green",outpch=22, outcol="red", outbg="yellow", plot = T)
+outliers = bplot$out
+outliers
+```
+
+There is an outlier at Stopping Distance = `r outliers`.
+
+\newpage
+## 3.2 The Linear Model Function
+
+### Linear model: dist ~ speed
+
+```{r linear-model, eval=T}
+LinearModel <- lm(dist ~ speed, data = cars)
+intercept = round(LinearModel$coefficients[1], 3)
+slope =     round(LinearModel$coefficients[2], 3)
+formula = paste ("dist = ", intercept, " + ", slope, "*", "speed + error")
+plot(x = speed, y = dist, 
+     main=paste("Cars dataset: ", formula))
+abline(reg = LinearModel,col="blue")
+```
+
+The intercept is negative, which means that at very low speeds, the predicted stopping distance would be negative.    
+(Of course, in reality, this is not possible...)
+
+\newpage
+## 3.3 Evaluating the Quality of the Model
+
+```{r eval-model-quality}
+summary(LinearModel)
+```
+
+The model shows strong significance at 99% confidence on the slope of the speed parameter, but the intercept is significant only at 95% confidence.    
+
+The $R^2$ indicates that the model explains about 65 percent of the variance, which is reasonably good.   
+This figure corresponds to correlation, $R$, of about 80 percent between the variables.
+
+\newpage
+## 3.4 Residual Analysis
+
+### Plot residuals
+```{r residual-analysis}
+Residual = resid(LinearModel) 
+Fitted = fitted(LinearModel)
+plot(Fitted,Residual, main="Cars dataset: Fitted vs. Residuals", xlab="Fitted Stopping Distance")
+abline(h=0, col="blue")
+```
+
+The residuals do not show any recognizable pattern, though the variance at higher speeds does appear to be larger than that at lower speeds, which may indicate heteroscedasticity.
+
+\newpage
+### QQ plot
+```{r qqplot}
+qqnorm(Residual)
+qqline(Residual)
+```
+
+The QQ plot indicates some outliers at the upper end (actual stopping distance well above model prediction),    
+which may call normality into question.
+
+\newpage
+### Plot histograms of Residuals
+```{r resid-histogram}
+Residual = resid(LinearModel) 
+hist(Residual, main = "Histogram of Residuals - 8 breaks", ylab = "Density", 
+     ylim = c(0, 0.05),prob = TRUE,breaks=8, col="lightblue")
+curve(dnorm(x, mean = mean(Residual), sd = sd(Residual)), col="red", add=TRUE)
+
+hist(Residual, main = "Histogram of Residuals - 15 breaks", ylab = "Density", 
+     ylim = c(0, 0.05),prob = TRUE,breaks=15, col="lightblue")
+curve(dnorm(x, mean = mean(Residual), sd = sd(Residual)), col="red", add=TRUE)
+```
+
+While the mean of the residuals is, by definition, zero, the **median** is **`r round(median(Residual),2)`** .    
+The number of observations for which the residual is negative is **`r sum(Residual<0)`**,    
+while the number of cases for which the residual is positive is **`r sum(Residual>0)`** .    
+These figures are consistent with the graphs shown above.     
+Because the sample size is so small, it is difficult to determine from the above whether or not Normality is achieved.
+
+
+
+### Shapiro-Wilks test
+
+$H_0$ : The residuals *are* normal
+$H_A$ : The residuals are *not* normal
+
+```{r Shapiro-Wilks, eval=T}
+shapiro.test(Residual)
+```
+
+Because the p-value (0.0215) is low, the null hypothesis is **rejected** at 95% confidence. 
+This indicates that the residuals are **not** sufficiently close to the normal distribution to meet the conditions of linear regression.
+
+## More Plots
+```{r more-plots}
+opar1 <- par(mfrow = c(2, 2), 
+            oma = c(0, 0, 1.1, 0),
+            mar = c(4.1, 4.1, 2.1, 1.1))
+plot(LinearModel)
+par(opar1)
+```
+
+## Conclusion
+
+Although the conditions for linear regression are questionable due to a few outliers resulting in failure of the normality test on the residuals, the model is significant and the results seem adequate in explaining that about ${\frac{2}{3}}$ of the variance in stopping distance is attributable to speed, while the other ${\frac{1}{3}}$ of the variance remains unexplained by this model and thus must be attributable to other factors which have not been modeled.
