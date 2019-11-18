@@ -1,0 +1,560 @@
+---
+title: "605-HW12-Regression-WorldHealth"
+author: "Michael Y."
+date: "November 17, 2019"
+output:
+  pdf_document:
+    md_extensions: +grid_tables
+    toc: yes
+    toc_depth: 3
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    md_extensions: +grid_tables
+classoption: landscape
+editor_options:
+  chunk_output_type: inline
+header-includes: 
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>
+
+---
+
+
+```{r setup, eval=T, echo=F}
+# Setup
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.pos='H')
+mydir = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20191117_Week12/"
+knitr::opts_knit$set(root.dir = mydir)
+
+### Make the output wide enough
+options(scipen = 999, digits=9, width=150)
+```
+
+```{r load-libraries, eval=T, message=F,warning=F, echo=F}
+### load some libraries
+library(datasets)
+library(kableExtra)
+```
+
+\newpage
+# HW11 - Regression2 - World Health
+## WHO datset
+### Load the dataset
+
+```{r load-who-data, eval=T}
+setwd(mydir)
+who.df <- read.csv('who.csv')
+attach(who.df)
+```
+
+#### The attached who.csv dataset contains real-world data from 2008. The variables included follow:
+
++----------------+----------------------------------------------------------------------+      
+|VariableName    |Description                                                           |     
++================+======================================================================+     
+|Country         |name of the country                                                   | 
++----------------+----------------------------------------------------------------------+     
+|LifeExp         |average life expectancy for the country in years                      |     
++----------------+----------------------------------------------------------------------+     
+|InfantSurvival  |proportion of those surviving to one year or more                     |      
++----------------+----------------------------------------------------------------------+     
+|Under5Survival  |proportion of those surviving to five years or more                   |       
++----------------+----------------------------------------------------------------------+     
+|TBFree          |proportion of the population without TB.                              |     
++----------------+----------------------------------------------------------------------+     
+|PropMD          |proportion of the population who are MDs                              |     
++----------------+----------------------------------------------------------------------+     
+|PropRN          |proportion of the population who are RNs                              |     
++----------------+----------------------------------------------------------------------+     
+|PersExp         |mean personal expenditures on healthcare                              |
+|                |       in US dollars at average exchange rate                         |     
++----------------+----------------------------------------------------------------------+     
+|GovtExp         |mean government expenditures per capita on healthcare,                |
+|                |       US dollars at average exchange rate                            |     
++----------------+----------------------------------------------------------------------+     
+|TotExp          |sum of personal and government expenditures.                          |     
++----------------+----------------------------------------------------------------------+     
+
+### EDA
+
+```{r who-EDA}
+# Dimension of the dataset
+dim(who.df)
+
+# structure of the dataset
+str(who.df)
+
+# summary of the dataset
+summary(who.df)
+```
+
+The dataset contains 190 observations of 10 variables (where each country is an obseervation.)
+
+
+***
+\newpage
+
+## 1. Provide a scatterplot of LifeExp~TotExp, and run simple linear regression.    
+#### Do not transform the variables.     
+
+### Linear Regression
+```{r p1-regression, eval=T}
+# Simple linear regression model
+Model1 <- lm(LifeExp ~ TotExp, data=who.df)
+Summ1 <- summary(Model1)
+Fstat1 <- Summ1$fstatistic[1]
+Tstat1_0 <- Summ1$coefficients["(Intercept)","t value"]
+Tstat1_1 <- Summ1$coefficients["TotExp","t value"]
+Pval1_0 <- Summ1$coefficients["(Intercept)","Pr(>|t|)"]
+Pval1_1 <- Summ1$coefficients["TotExp","Pr(>|t|)"]
+Rsq1 <- Summ1$r.squared
+AdjRsq1 <- Summ1$adj.r.squared
+Correlation1 <- cor(who.df$LifeExp, who.df$TotExp)
+print(Summ1)
+```
+
+
+### Make a scatterplot, with regression line
+```{r p1-scatterplot, eval=T}
+plot(LifeExp~TotExp,
+     xlab="Sum of personal and government expenditures, by country", 
+     ylab="Average life expectancy for the country, in years",
+     main="Expenditures vs. Life Expectancy: W.H.O. data from 2008",
+     col="blue")
+abline(Model1,col="red")
+
+```
+
+#### Provide and interpret the F statistics, $R^2$, standard error,and p-values only.     
+
+The **F-statistic**, `r Fstat1` is large, indicating significance.  (The critical value for the F-test is `r qf(.95, df1=1, df2=188)`).   
+
+Because there is only 1 degree of freedom in the numerator, the F-statistic equals the **square of the t-value**, `r Tstat1_1`, on the coefficient on the independent variable, `TotExp`. 
+
+The **$R^2$** (`r Rsq1`) and the **adjusted-$R^2$** (`r AdjRsq1`) values are not very strong, indicating a poor fit.  As they are about $\frac{1}{4}$, this indicates that the correlation between the independent and dependent variables is about $\frac{1}{2}$ .     
+
+(We have confirmed that the actual correlation is `r Correlation1` .)     
+
+The `Null Hypothesis` is $H_0$: The regression coefficients are ***not*** significantly different from zero,    
+indicating no relationship between the dependent and independent variables.    
+
+The `Alternative` is $H_A$: The coefficients ***are*** significantly different from zero.    
+
+The results indicate that the coefficients are significant, as the p-values are close to zero.    
+
+
+### Regression Assumptions
+#### Discuss whether the assumptions of simple linear regression met.    
+
+There are four assumptions of simple linear regression:
+
+1. Linearity of the data. The relationship between the predictor (x) and the outcome (y) is assumed to be linear.   
+2. Normality of residuals. The residual errors are assumed to be normally distributed.   
+3. Homogeneity of residuals variance. The residuals are assumed to have a constant variance (homoscedasticity)   
+4. Independence of residuals error terms.    
+
+We will find that in this example, these assumptions are not met.   
+
+#### 1. Linearity of the data
+
+Clearly from the plot above, the data is not linear.  We could resolve this through a transformation, such as taking logs, but have been asked  not to.    Additionally, the plot of the residuals has the following pattern:
+
+```{r model1-residualplot, eval=T}
+Residual = resid(Model1) 
+Fitted = fitted(Model1)
+plot(Fitted,Residual, 
+     main="W.H.O. dataset (expenditures vs. life expectancy): Fitted vs. Residuals", 
+     xlab="Fitted Life Expectancy (by country)")
+abline(h=0, col="blue")
+```
+
+This does not look good...
+
+
+#### 2. Normality of residuals.
+
+##### Histogram:
+
+We plot a histogram of the residuals:
+
+```{r histogram-residuals, eval=T}
+Residual = resid(Model1) 
+hist(Residual, main = "Histogram of Residuals - 15 breaks", ylab = "Density", 
+     ylim = c(0, 0.08),
+     xlim = c(-30,30),
+     prob = TRUE,breaks=15, col="lightblue")
+curve(dnorm(x, mean = mean(Residual), sd = sd(Residual)), col="red", add=TRUE)
+```
+
+Clearly the above distribution is highly skewed and does not resemble the required normal distribution, which is superimposed in red.
+
+
+##### QQ-Plot:
+
+```{r qqplot-model1, eval=T}
+qqnorm(Residual, ylim=c(-30,30))
+qqline(Residual, col="red")
+
+```
+
+
+Clearly the residuals fail the QQplot test.    
+
+
+We can run several standard tests of normality:    
+
+```{r normality-tests, eval=T}
+library(olsrr)
+ols_test_normality(Model1)
+```
+
+Every test failed.    
+
+#### 3. Homogeneity of residuals variance. 
+
+Clearly looking at the graphs above suggests that this test should fail.   
+
+We can test using the `lmSupport` package:
+
+```{r lmSupport-tests, eval=T}
+library(lmSupport)
+modelAssumptions(Model1,"LINEAR")
+```
+
+
+While various tests do fail, according to the above diagnostic, the heteroscedasticity test does not fail.   
+
+
+
+#### 4. Independence of residuals
+
+While there is clearly a relationship between the independent variable vs. the residual, the residuals themselves are actually independent of each other, as each represents the result from an individual country.  Plotting the residuals sequentially (where the sequence happens to be alphabetical by country name) doesn't yield any discernable pattern:  
+
+```{r plot-resids}
+plot(Residual, main="Residuals, sequenced alphabetically by country name")
+abline(h=0, col="red")
+```
+
+Having failed several of the assumptions of Linear Regression, the simple linear regression model is ***NOT SUITABLE*** for this data.
+
+
+***
+\newpage
+## 2. Raise life expectancy to the 4.6 power (i.e., $LifeExp^{4.6}$).  
+#### Raise total expenditures to the 0.06 power (nearly a log transform, $TotExp^{.06}$).   
+
+```{r model2-xform}
+who.df$xformLifeExp <- who.df$LifeExp^(4.6)
+who.df$xformTotExp <- who.df$TotExp^(0.06)
+```
+
+#### Plot $LifeExp^{4.6}$ as a function of $TotExp^{.06}$, and r re-run the simple regression model using the transformed variables.   
+
+```{r p2-regression, eval=T}
+# Simple linear regression model, with transformed variables
+Model2 <- lm(xformLifeExp ~ xformTotExp, data=who.df)
+Summ2 <- summary(Model2)
+Fstat2 <- Summ2$fstatistic[1]
+Tstat2_0 <- Summ2$coefficients["(Intercept)","t value"]
+Tstat2_1 <- Summ2$coefficients["xformTotExp","t value"]
+Pval2_0 <- Summ2$coefficients["(Intercept)","Pr(>|t|)"]
+Pval2_1 <- Summ2$coefficients["xformTotExp","Pr(>|t|)"]
+Rsq2 <- Summ2$r.squared
+AdjRsq2 <- Summ2$adj.r.squared
+Correlation2 <- cor(who.df$xformLifeExp, who.df$xformTotExp)
+print(Summ2)
+```
+
+### Make a scatterplot, with regression line
+```{r p2-scatterplot, eval=T}
+plot(xformLifeExp~xformTotExp, data=who.df,
+     xlab="[Sum of personal and government expenditures]^(0.06)", 
+     ylab="Average life expectancy^(4.6)",
+     main="Expenditures^(0.06) vs. Life Expectancy(4.6): W.H.O. data from 2008",
+     col="blue")
+abline(Model2,col="red")
+
+```
+
+
+#### Provide and interpret the F statistics, $R^2$, standard error, and p-values.     
+
+The **F-statistic**, `r Fstat2` is large, indicating significance.  (The critical value for the F-test is `r qf(.95, df1=1, df2=188)`).   
+
+Because there is only 1 degree of freedom in the numerator, the F-statistic equals the **square of the t-value**, `r Tstat2_1`, on the coefficient on the independent variable, `TotExp`. 
+
+The **$R^2$** (`r Rsq2`) and the **adjusted-$R^2$** (`r AdjRsq2`) values are strong, much better than those in the previous model. This indicating a much better fit.  As they are about $\frac{3}{4}$, this indicates that the correlation between the independent and dependent variables is about $\frac{\sqrt3}{2}= `r sqrt(3)/2`$ .     
+
+(We have confirmed that the actual correlation is `r Correlation2` .)     
+
+The `Null Hypothesis` is $H_0$: The regression coefficients are ***not*** significantly different from zero,    
+indicating no relationship between the dependent and independent variables.    
+
+The `Alternative` is $H_A$: The coefficients ***are*** significantly different from zero.    
+
+The results indicate that the coefficients are significant, as the p-values are close to zero.    
+
+
+#### Linearity of the (transformed) data
+```{r model2-residualplot, eval=T, fig.width=12}
+xformResidual = resid(Model2) 
+xformFitted = fitted(Model2)
+plot(xformFitted,xformResidual,
+     main="W.H.O. dataset (expenditures^0.06 vs. life expectancy^4.6): Fitted vs. Residuals", 
+     xlab="Fitted [Life Expectancy]^4.6 (by country)")
+abline(h=0, col="blue")
+```
+
+#### 2. Normality of residuals of transformed model.
+
+##### Histogram of transformed model:
+
+We plot a histogram of the residuals:
+
+```{r histogram-residuals2, eval=T}
+xformResidual = resid(Model2) 
+hist(xformResidual, main = "Histogram of Residuals of transformed model - 12 breaks", ylab = "Density", 
+     ylim = c(0, 0.000000006),
+     xlim = c(-400000000,400000000),
+     prob = TRUE,breaks=12, col="lightblue")
+curve(dnorm(x, mean = mean(xformResidual), sd = sd(xformResidual)), col="red", add=TRUE)
+```
+
+The above distribution much more closely resembles the normal distribution, which is superimposed in red.
+
+
+##### QQ-Plot on transformed model:
+
+```{r qqplot-model2, eval=T}
+qqnorm(xformResidual, ylim=c(-300000000,300000000))
+qqline(xformResidual, col="red")
+
+```
+
+
+The quantiles of the residuals on the transformed model much more closely match those of the Normal distribution, though there are is a thicker lower tail.    
+
+
+We can run several standard tests of normality:    
+
+```{r normality-tests2, eval=T}
+#library(olsrr)
+ols_test_normality(Model2)
+```
+
+While the Kolmogorov-Smirnov test no longer fails, every other test still fails, despite the transformations.    
+
+#### 3. Homogeneity of residuals variance on transformed model. 
+
+Looking at the improvement of the graphs above suggests that this test should pass.   
+
+We can test using the `lmSupport` package:
+
+```{r lmSupport-tests2, eval=T}
+#library(lmSupport)
+modelAssumptions(Model2,"LINEAR")
+```
+
+
+Despite the improvement in the model, various tests do fail according to the above diagnostic.    
+**However, the heteroscedasticity test does pass**.   
+
+
+
+#### 4. Independence of residuals on transformed model
+
+While there is clearly a relationship between the independent variable vs. the residual, the residuals themselves are actually independent of each other, as each represents the result from an individual country.  Plotting the residuals sequentially (where the sequence happens to be alphabetical by country name) doesn't yield any discernable pattern:  
+
+```{r plot-resids2, eval=T}
+plot(xformResidual, main="Residuals of the transformed model")
+abline(h=0, col="red")
+```
+
+
+
+
+
+
+### Which model is "better?"
+
+Despite the fact that the second model still fails several tests, the graphs indicate that it is much better than the first model.   
+
+
+***
+\newpage
+
+## 3. Using the results from 3, forecast life expectancy when $TotExp^{.06} =1.5$ .    
+#### Then forecast life expectancy when $TotExp^{.06}=2.5$ .
+
+```{r predict-model2, eval=T}
+
+# Create a dataframe with the values 1.5 and 2.5 for the x-value (here, renamed "xformTotExp")
+predictor_values <-  data.frame(xformTotExp=c(1.5,2.5))
+
+# call the predict function to obtain the prediction.
+# Because the initial life expectancy values have been raised to power 4.6, we need to reverse this to obtain the desired result
+prediction_results <- predict(object=Model2,predictor_values,interval = 'predict')^(1/4.6)
+prediction_results
+
+res <- round(prediction_results,2)
+res
+
+```
+
+The life expectancy when $TotExp^{.06} =1.5$ is `r res[1,"fit"]` 
+with a confidence interval of (`r res[1,"lwr"]`,`r res[1,"upr"]`) .    
+
+The life expectancy when $TotExp^{.06} =2.5$ is `r prediction_results[2,"fit"]` 
+with a confidence interval of (`r prediction_results[2,"lwr"]`,`r prediction_results[2,"upr"]`) .    
+
+
+
+***
+\newpage
+
+## 4. Build the following multiple regression model and interpret the F Statistics, $R^2$, standard error, and p-values.    
+
+$$LifeExp = b_0+b_1 \cdot  PropMd + b_2 \cdot  TotExp + b_3 \cdot  PropMD \cdot TotExp$$
+
+
+```{r model3-interaction, eval=T}
+Model3 <- lm(LifeExp ~ PropMD + TotExp + (PropMD*TotExp),data=who.df)
+summary(Model3)
+
+```
+
+#### Linearity of the model with interaction term
+```{r model3-residualplot, eval=T, fig.width=12}
+model3Residual = resid(Model3) 
+model3Fitted = fitted(Model3)
+plot(model3Fitted,model3Residual,
+     main="W.H.O. dataset (expenditures and proportion of MDs vs. life expectancy): Fitted vs. Residuals", 
+     xlab="Fitted Life Expectency (by country)")
+abline(h=0, col="blue")
+```
+
+The model does not show much improvement over the initial model.
+
+
+```{r histogram-residuals3, eval=T}
+model3Residual = resid(Model3) 
+hist(model3Residual, main = "Histogram of Residuals - 20 breaks", ylab = "Density", 
+     ylim = c(0, 0.10),
+     xlim = c(-30,30),
+     prob = TRUE,breaks=20, col="lightblue")
+curve(dnorm(x, mean = mean(Residual), sd = sd(Residual)), col="red", add=TRUE)
+```
+
+The above histogram does not closely resemble the corresponding Normal distribution.    
+
+
+#### QQPlot:
+
+```{r qqplot-model3, eval=T}
+qqnorm(model3Residual, ylim=c(-30,30))
+qqline(model3Residual, col="red")
+```
+
+Not a good result.
+
+#### Tests of Normality:
+```{r normality-tests3, eval=T}
+#library(olsrr)
+ols_test_normality(Model3)
+```
+
+All tests fail.
+
+#### Homogeneity of residuals variance:
+
+Clearly looking at the graphs above suggests that this test should fail.   
+
+
+```{r lmSupport-tests3, eval=T}
+#library(lmSupport)
+modelAssumptions(Model3,"Normal")
+```
+
+The model does pass the heteroscedasticity test.   
+
+#### How good is the model?    
+
+While the model has a higher $R^2$ than the initial model, it still fails numerous tests.
+
+***
+\newpage
+
+## 5. Forecast LifeExp when $PropMD=.03$ and $TotExp = 14$.     
+
+```{r predict-model3, eval=T}
+
+# Create a dataframe with the PropMD = .03 and TotExp = 14 for the x-values
+predictor_values3 <-  data.frame(PropMD=0.03, TotExp=14)
+
+# call the predict function to obtain the prediction.
+
+prediction_results3 <- predict(object=Model3,predictor_values3,interval = 'predict')
+prediction_results3
+
+res3 <- round(prediction_results3,2)
+res3
+
+```
+
+Under this model, the life expectancy when is `r res3[1,"fit"]` 
+with a confidence interval of (`r res3[1,"lwr"]`,`r res3[1,"upr"]`) .
+
+#### Does this forecast seem realistic?     
+
+No, it does not seem realistic, as this represents an expected lifespan in years.
+
+#### Why or why not?
+
+If we look at the input data, the highest life expectancy is 83.   
+
+Furthermore, there are only two countries (Cyprus and San Marino) with a proportion of MDs greater than 3 percent of the population (indeed, greater than 1 percent):
+
+```{r many-MDs, eval=T}
+many_MDs <- who.df[who.df$PropMD > 0.03,]
+(many_MDs[,1:10]) %>% kable() %>% kable_styling(c("striped", "bordered"))
+```
+
+These are both relatively wealthy (and, small) European countries with long life expectancies (80 and 82).    
+
+There is only one country (Burundi) with a `TotExp` less than 50:
+```{r small-expenditure, eval=T}
+small_expenditure <- who.df[who.df$TotExp < 50,]
+small_expenditure[,1:10] %>% kable() %>% kable_styling(c("striped", "bordered"))
+```
+
+Here the life expectancy of 48 is among the lowest such expectancies, and the proportion of MDs in the country is miniscule.
+
+So, there are no countries similar to that requested for the prediction -- with a very high proportion of MDs in the population but extremely low expenditures on healthcare.
+
+If we plot the relationship between PropMD and TotExp we see the following:
+
+```{r plot-propMD, eval=T}
+plot(PropMD,TotExp, col="blue")
+```
+
+If there were any country which had PropMD and TotExp similar to those requested for prediction, it would be located at the very bottom (immediately above the 0.030 tickmark.)  WHile there is a country which appears to be relatively nearby (Cyprus, in the lower right) the key difference is that Cyprus is a rather small country which which spends a sizable amount on healthcare and has high life expectancy.    
+
+Accordingly, the data doesn't support forecasting the life expectancy for a country where 3 percent of the population are doctors but the average healthcare spending is only $14 because there are no countries like this.
+
+
+
+
+***
