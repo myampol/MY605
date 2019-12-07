@@ -1,0 +1,567 @@
+---
+title: "605-HW15-Calculus 3"
+author: "Michael Y."
+date: "December 8, 2019"
+output:
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    md_extensions: +grid_tables
+  pdf_document:
+    md_extensions: +grid_tables
+    toc: yes
+    toc_depth: 3
+classoption: portrait
+editor_options:
+  chunk_output_type: inline
+header-includes: 
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>
+
+---
+
+
+```{r setup, eval=T, echo=F}
+# Setup
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.pos='H')
+directory = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20191208_Week15/"
+knitr::opts_knit$set(root.dir = directory)
+
+### Make the output wide enough
+options(scipen = 999, digits=9, width=150)
+```
+
+```{r load, eval=T, message=F,warning=F, echo=F}
+### load some libraries
+library(pracma)
+library(kableExtra)
+```
+
+\newpage
+# HW15 - Calculus 3
+
+## 1. Find the equation of the regression line for the given points.   
+#### Round any final values to the nearest hundredth, if necessary.
+
+```{r ex1, eval=TRUE}
+# put the pairs into a list
+points = list(
+  c( 5.6,  8.8 ), 
+  c( 6.3, 12.4 ), 
+  c( 7,   14.8 ), 
+  c( 7.7, 18.2 ), 
+  c( 8.4, 20.8 )
+  )
+# Make the list into an array
+points=simplify2array(points)
+points
+
+# get x
+x=points[1,]
+x
+
+# get y
+y=points[2,]
+y
+
+# regression
+model1 =  lm(y~x)
+model1
+summary(model1)
+beta=model1$coefficients
+beta
+
+intercept    =round(beta["(Intercept)"],2)
+slope        =round(beta["x"],2)
+eqn = paste("Regression line: y = ", intercept, "+", slope, "x")
+eqn
+plot(y~x, main=eqn)
+abline(model1, col="red")
+```
+
+The formula for the regression line is $\boxed{`r paste("y = ", intercept, "+", slope, "x")`}$ .   
+
+
+***
+\newpage
+
+## 2. Find all local maxima, local minima, and saddle points for the function given below. 
+
+#### Write your answer(s) in the form ( x, y, z ). 
+#### Separate multiple points with a comma.     
+
+
+$f ( x, y ) = 24x - 6xy^2 - 8y^3$
+
+To find the critical points, compute the first derivatives and set equal to zero:    
+
+$f_x = \frac{\partial}{\partial x}(24x - 6xy^2 -8y^3) = 24-6y^2 = 0 \implies4 = y^2 \implies y \in \{-2,2\}$   .
+
+$f_y = \frac{\partial}{\partial y}(24x - 6xy^2 -8y^3) = -12xy-24y^2 = 0$    .     
+
+$xy =-2y^2 \implies (y=0) \vee (x=-2y)$ .    
+
+From above, we know that $y \in \{-2,2\}$ so we can disregard the case that $y=0$.     
+
+Therefore, $x \in \{4,-4\}$, i.e., $(x,y) \in \{(-4,2),(4,-2)\}$ .  
+
+Evaluating the function at these points, we obtain:    
+
+$f(-4,2) = 24\cdot(-4) - 6\cdot(-4)\cdot(2)^2 - 8\cdot(2)^3=-96+96-64=-64$     
+$f(4,-2) = 24\cdot(4) - 6\cdot(4)\cdot(-2)^2 - 8\cdot(-2)^3=96-96+64=64$    
+
+Therefore, the ***critical points*** are $\boxed{(x,y,z) \in \{(-4,2,-64),(4,-2,64)\}}$ .       
+
+To determine whether these critical values are maxima, minima, or saddle points, we need to use the second partial derivative test:   
+
+$f_{xx} = \frac{\partial(f_{x})}{\partial x} = \frac{\partial}{\partial x}(24-6y^2) = 0$ .     
+
+$f_{yy} = \frac{\partial(f_{y})}{\partial y} = \frac{\partial}{\partial y}(-12xy-24y^2) = -12x-48y$  .
+
+$f_{xy}  = \frac{\partial(f_{x})}{\partial y} = \frac{\partial}{\partial y} (24-6y^2) = -12y$
+$f_{yx}  = \frac{\partial(f_{y})}{\partial x} = \frac{\partial}{\partial x} (-12xy-24y^2) = -12y = f_{xy}$ , as expected.
+
+The discriminant $D(f(x,y)) = f_{xx}f_{yy} - f_{xy}f_{yx} = (0)(-12x-48y)-(-12y)^2=-144y^2$.    
+At both critical points, $D(f(-4,2)) = D(f(4,-2)) = -144\cdot(\pm2)^2 = -576 < 0$ .
+
+By the second partial derivative test, each of the two points $(x,y,z) \in \{(-4,2,-64),(4,-2,64)\}$ is a ***saddle point*** -- there are no maxima nor minima.
+
+
+
+
+***
+\newpage
+
+## 3. A grocery store sells two brands of a product, the "house" brand and a "name" brand. 
+
+The manager estimates that if she sells the "house" brand for $x$ dollars and the "name" brand for $y$ dollars, she will be able to sell   
+
+* $81 - 21x + 17y$ units of the "house" brand and 
+* $40 + 11x - 23y$ units of the "name" brand.
+
+### Step 1. Find the revenue function $R ( x, y )$ .    
+
+$$\begin{aligned}
+R(x,y) 
+&= (81- 21x + 17y)x + (40 + 11x - 23y)y \\
+&=81x - 21x^2 + 17xy + 40y +11xy- 23y^2 \\
+&= -21x^2  -23y^2 + 28xy + 81x + 40y \\
+\end{aligned}$$
+
+
+### Step 2. What is the revenue if she sells the "house" brand for $2.30 and the "name" brand for $4.10?    
+
+##### Calculation functions:
+```{r calc-revenue, eval=T}
+calcHouseUnits <- function(x,y)
+{
+  HouseUnits = 81 - 21*x + 17*y
+  return(c(HouseUnits))
+}
+
+calcNameUnits <- function(x,y)
+{
+  NameUnits = 40 + 11*x + -23*y
+  return(c(NameUnits))
+}
+
+calcRevenue <- function(x,y)
+{
+    r = - 21*x^2  - 23*y^2 + 28*x*y + 81*x + 40*y
+    return(c(r))
+}
+
+calcRevenueWithRounding <- function(x,y)
+{
+  intHouseUnits = round(calcHouseUnits(x,y),0)
+  intNameUnits = round(calcNameUnits(x,y),0)
+
+  HouseRevenue = round(x,2) * intHouseUnits
+  NameRevenue = round(y,2) * intNameUnits
+  TotalRevenue = HouseRevenue + NameRevenue
+return(c(TotalRevenue))
+}
+```
+
+\newpage
+### Calculate revenue without requiring that the quantity of each item sold be an integer
+```{r calcs1}
+x=2.30
+y=4.10
+
+houseUnits=calcHouseUnits(x,y)
+print(paste("Units of House brand sold: ", houseUnits, 
+            "at price of ",x," each ",
+            "--> revenue = ", x*houseUnits))
+
+nameUnits = calcNameUnits(x,y)
+print(paste("Units of name brand sold: ", nameUnits, 
+            "at price of ",y," each ",
+            "--> revenue = ", y*nameUnits))
+
+print(paste("Total revenue: ", x*houseUnits + y*nameUnits))
+
+checkRevenue = calcRevenue(x,y)
+print(paste("Double-check : ", checkRevenue))
+```
+
+\newpage
+### Re-calculate revenue, adding a requirement that the quantity of each item sold be an integer
+```{r calcs2}
+x=2.30
+y=4.10
+
+houseUnits=round(calcHouseUnits(x,y),0)
+print(paste("Units of House brand sold: ", houseUnits, 
+            "at price of ",x," each ",
+            "--> revenue = ", x*houseUnits))
+
+nameUnits = round(calcNameUnits(x,y),0)
+print(paste("Units of name brand sold: ", nameUnits, 
+            "at price of ",y," each ",
+            "--> revenue = ", y*nameUnits))
+
+print(paste("Total revenue: ", x*houseUnits + y*nameUnits))
+
+checkRevenue = calcRevenueWithRounding(x,y)
+print(paste("Double-check : ", checkRevenue))
+```
+
+***There is a problem with these figures*** -- because it is expecting that we would sell 
+
+* `r houseUnits` units of the "house" brand, but 
+* `r nameUnits` units of the "name" brand.  
+
+The latter figure is ***negative.***   **This is not possible.**
+
+So, let's restrict the quantities to be non-negative:
+
+\newpage
+### Functions with non-negative quantity restrictions
+```{r calc-nonneg-revenue, eval=T}
+calcNonNegHouseUnits <- function(x,y)
+{
+  HouseUnits = 81 - 21*x + 17*y
+  return(max(0,HouseUnits))
+}
+
+calcNonNegNameUnits <- function(x,y)
+{
+  NameUnits = 40 + 11*x + -23*y
+  return(max(0,NameUnits))
+}
+
+#calcRevenue <- function(x,y)
+#{
+#    r = - 21*x^2  - 23*y^2 + 28*x*y + 81*x + 40*y
+#    return(c(r))
+#}
+
+calcNonNegRevenueWithRounding <- function(x,y)
+{
+  intNonNegHouseUnits = round(calcNonNegHouseUnits(x,y),0)
+  intNonNegNameUnits = round(calcNonNegNameUnits(x,y),0)
+
+  NonNegHouseRevenue = round(x,2) * intNonNegHouseUnits
+  NonNegNameRevenue = round(y,2) * intNonNegNameUnits
+  NonNegTotalRevenue = NonNegHouseRevenue + NonNegNameRevenue
+
+return(c(NonNegTotalRevenue))
+}
+```
+
+\newpage
+### Calculate results with non-negative restrictions:
+```{r calcs3}
+x=2.30
+y=4.10
+
+NonNegHouseUnits=round(calcNonNegHouseUnits(x,y),0)
+print(paste("Units of House brand sold: ", NonNegHouseUnits, 
+            "at price of ",x," each ",
+            "--> revenue = ", x*NonNegHouseUnits))
+
+NonNegNameUnits = round(calcNonNegNameUnits(x,y),0)
+print(paste("Units of name brand sold: ", NonNegNameUnits, 
+            "at price of ",y," each ",
+            "--> revenue = ", y*NonNegNameUnits))
+
+print(paste("Total revenue: ", x*NonNegHouseUnits + y*NonNegNameUnits))
+
+checkNonNegRevenue = calcNonNegRevenueWithRounding(x,y)
+print(paste("Double-check : ", checkNonNegRevenue))
+```
+
+***Still there is a problem here:***    
+Allowing us to override an otherwise negative quantity-sold with zero, while still setting a high nominal price for such item, would allow us to sell an arbitrary (i.e., infinite) quantity of the other item simply by making the price of the non-salable item arbitrarily high.   
+
+Under such model, the result would be an arbitrarily large amount of sales from from the house brand with zero sales of (expensive) name brand.
+
+***This indicates that this problem is not well-formulated.***
+
+\newpage
+### Revenue maximization?
+
+The question doesn't ask about maximization of revenue (which one would have expected it to ask...)   
+
+So, let's compute it anyhow...    
+
+* $R_x = -42x +28y +81 = 0$      
+* $R_y =  28x -46y +40 = 0$
+
+So, we have a system of 2 simultaneous equations in 2 unknowns:
+
+$$\begin{cases} 
+\begin{aligned}
+-42x +28y +81 &=0 \\ 
+28x  -46y +40 &= 0 
+\end{aligned}
+\end{cases}$$
+
+Multiplying the second equation by $\frac{3}{2}$  gives us    
+$$\begin{cases} 
+\begin{aligned}
+-42x +28y +81 &=0 \\ 
+42x  -69y +60 &= 0 
+\end{aligned}
+\end{cases}$$
+
+Adding together gives us   
+
+$-41y+141=0$ , so $y = \frac{141}{41}\approx 3.43902439$   .
+
+From the above equations, 
+$x = \frac{28y+81}{42}=\frac{28 \cdot\frac{141}{41}+81}{42} =\frac{7269}{1722}\approx 4.22125436$   .    
+
+So, the critical point (which we assume will be a maximum) is (housePrice,namePrice)=$(x^*,y^*)=\left(\frac{7269}{1722},\frac{141}{41}\right)\approx(4.22125436,3.43902439)$
+
+
+Of course, we could use R to perform the above calculations for us:   
+$$\begin{aligned}
+R_x&:        -42x +28y  &= -81 \\
+R_y&: \quad   28x -46y  &= -41
+\end{aligned}$$
+
+
+
+\newpage
+### Solve system of 2 equations using `rref` from `pracma`
+```{r solve-eqns, eval=T}
+Rx = c(-42,28,-81)
+Ry = c(28,-46,-40)
+eqns <- rbind(Rx,Ry)
+eqns
+
+result <- rref(eqns)
+result
+
+soln <- result[,3]
+soln
+```
+
+\newpage
+### Perform calculations on $(x^{*},y^{*}) =(`r soln["Rx"]` , `r soln["Ry"]`)$
+
+```{r calcs4}
+xstar=soln["Rx"]
+ystar=soln["Ry"]
+
+
+
+starhouseUnits=calcHouseUnits(xstar,ystar)
+print(paste("Units of House brand sold: ", starhouseUnits, 
+            "at price of ",xstar," each ",
+            "--> revenue = ", xstar*starhouseUnits))
+
+starnameUnits = calcNameUnits(xstar,ystar)
+print(paste("Units of name brand sold: ", starnameUnits, 
+            "at price of ",ystar," each ",
+            "--> revenue = ", ystar*starnameUnits))
+
+
+print(paste("Total revenue: ", xstar*starhouseUnits + ystar*starnameUnits))
+
+starrevenue = calcRevenue(xstar,ystar)
+starrevenue
+
+```
+
+##### The above indicates that we generate revenue of \$$`r starrevenue`$.
+
+
+Of course, we should assume that 
+
+* we can't sell fractional units,  and  
+* each unit price should be rounded to cents.     
+
+This introduces an "integer programming" problem, which can be considerably more difficult than a linear programming problem, because the result obtained from rounding the quantities to the closest integer may be inferior to rounding to the more distant integer.    
+
+Ignoring such issue, we obtain a slightly smaller result:
+
+\newpage
+### Perform calculations on $(x^{*},y^{*}) =(`r round(xstar,2)` , `r round(ystar,2)`)$
+
+```{r calcs5}
+roundxstar=round(xstar,2)
+roundystar=round(ystar,2)
+
+intstarhouseUnits=round(calcHouseUnits(roundxstar,roundystar),0)
+print(paste("Units of House brand sold: ", intstarhouseUnits, 
+            "at price of ",roundxstar," each ",
+            "--> revenue = ", roundxstar*intstarhouseUnits))
+
+intstarnameUnits = round(calcNameUnits(roundxstar,roundystar),0)
+print(paste("Units of name brand sold: ", intstarnameUnits, 
+            "at price of ",roundystar," each ",
+            "--> revenue = ", roundystar*intstarnameUnits))
+
+
+print(paste("Total revenue: ", roundxstar*intstarhouseUnits + roundystar*intstarnameUnits))
+
+starrevenue = calcRevenueWithRounding(roundxstar,roundystar)
+starrevenue
+```
+
+##### The above indicates that we generate revenue of \$$`r starrevenue`$.
+
+
+\newpage
+### Confirm maximum
+
+To verify that this critical point is in fact a maximum, consider the second derivative test:   
+
+$R_x = -42x +28y +81 = 0$
+$R_y =  28x -46y +40 = 0$
+
+
+$R_{xx} = \frac{\partial(R_{x})}{\partial x} = \frac{\partial}{\partial x}(-42x +28y +81) = -42$ .     
+
+$R_{yy} = \frac{\partial(R_{y})}{\partial y} = \frac{\partial}{\partial y}(28x -46y +40) = -46$  .
+
+$R_{xy}  = \frac{\partial(R_{x})}{\partial y} = \frac{\partial}{\partial y} ( -42x +28y +81) = 28$
+$R_{yx}  = \frac{\partial(R_{y})}{\partial x} = \frac{\partial}{\partial x} (28x -46y +40) = 28 = f_{xy}$ , as expected.
+
+The discriminant 
+$$\begin{aligned}
+D(f(x,y)) 
+= R_{xx}R_{yy} - R_{xy}R_{yx} 
+&= (-42)(-46)-(28)^2\\
+&=1932-784\\
+&=1148\\
+&>0
+\end{aligned}$$.
+
+Because
+
+* $D(R(x,y))>0 \quad\forall (x,y)$ , and 
+* $R_{xx}(x,y)<0 \quad\forall(x,y)$, 
+
+the critical point (`r roundxstar`,`r roundystar`) is a ***maximum*** .   
+
+### However, there is still one problem here:   
+
+Generally a "house" brand is ***less expensive*** than a "name" brand.   
+
+The result of this optimization is to select 
+
+* a ***higher price*** (`r roundxstar`) for the ***house brand*** and 
+* a ***lower price*** (`r roundystar`) for the ***name brand***.    
+
+***This does not make sense***, and further suggests that the model is not well-formulated.   
+
+
+
+***
+\newpage
+
+## 4. A company has a plant in Los Angeles and a plant in Denver. 
+
+The firm is committed to produce a total of 96 units of a product each week.    
+
+The total weekly cost is given by $C(x, y) = \frac{1}{6}x^2 +  \frac{1}{6}y^2 + 7x + 25y + 700$  , where     
+
+* $x$ is the number of units produced in Los Angeles and 
+* $y$ is the number of units produced in Denver.     
+
+How many units should be produced in each plant to **minimize** the total weekly cost?     
+
+First, note that $x+y=96$, so $y=96-x$ .    
+
+Substituting,    
+
+$$\begin{aligned}
+C(x, y) &= \frac{1}{6}x^2 +  \frac{1}{6}y^2 + 7x + 25y + 700 \\
+C(x, 96-x)&= \frac{1}{6}x^2 +  \frac{1}{6}(96-x)^2 + 7x + 25(96-x) + 700 \\
+&= \frac{1}{6}x^2 +  \frac{1}{6}(96^2-192x+x^2) + 7x + (2400-25x) + 700 \\
+&= \frac{1}{6}x^2 +  1536 -32x + \frac{1}{6}x^2 + 7x + (2400-25x) + 700 \\
+&= \frac{1}{3}x^2 -50x  +4636 \\
+&= \frac{x^2-150x+5625}{3} +2721 \\
+&= \frac{(x-75)^2}{3}+2761
+\end{aligned}$$
+
+
+Next, compute the derivative $\frac{dC}{dx}$ and set equal to zero:
+
+$C' = \frac{dC}{dx} = \frac{2(x-75)}{3}=\frac{2}{3}x-50=0 \\ \implies x=75 \\ \implies y=96-x=96-75=21$.
+
+To confirm that this is a ***minimum***, we look at the second derivative test:
+
+$C'' = \frac{d^2C}{dx^2} = \frac{2}{3} > 0$.   
+
+Because the second derivative is positive, this confirms that the critical point is a minimum.   
+
+This means that:      
+
+* 75 units should be produced in Los Angeles
+* 21 units should be produced in Denver
+
+Under the above allocation, the total weekly cost is minimized at $C(75,21) = \$2,761$ .
+
+***
+\newpage
+
+## 5. Evaluate the double integral ${\iint\limits_R {e^{8x + 3y} dA}}$ on the given region .
+R: $2 \le x \le 4$ and $2 \le y \le 4$
+
+Write your answer in exact form without decimals.
+
+$$\begin{aligned}
+\int\limits_{2}^4 \left[\int\limits_{2}^4 {e^{8x + 3y} dx}\right] dy 
+&=\int\limits_{2}^4 \left[e^{3y}\int\limits_{2}^4 {e^{8x} dx}\right] dy \\
+&=\int\limits_{2}^{4} e^{3y}\left[ \frac{e^{8x}}{8} \right]_{x=2}^{x=4} dy \\
+&=\int\limits_{2}^{4} e^{3y}\left[ \frac{e^{32}-e^{16}}{8} \right] dy \\
+&=\left[ \frac{e^{32}-e^{16}}{8} \right]\int\limits_{2}^{4} e^{3y} dy \\
+&=\left[ \frac{e^{32}-e^{16}}{8} \right]\left[ \frac{e^{3y}}{3} \right]_{y=2}^{y=4} \\
+&=\left[ \frac{e^{32}-e^{16}}{8} \right]\left[ \frac{e^{12}-e^{6}}{3} \right] \\
+&=\left[ \frac{e^{32}e^{12}-e^{32}e^{6}-e^{16}e^{12}+e^{16}e^{6}}{24} \right] \\
+&=\left[ \frac{e^{44}-e^{38}-e^{28}+e^{22}}{24} \right] \\ \\
+&=\boxed{\frac{e^{22}}{24}\left[ {e^{22}-e^{16}-e^{6}+1} \right]} \\
+\end{aligned}$$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
