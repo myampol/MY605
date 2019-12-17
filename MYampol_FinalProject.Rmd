@@ -1,0 +1,1760 @@
+---
+title: "605-Final-Project"
+author: "Michael Y."
+date: "December 15, 2019"
+output:
+  pdf_document:
+    md_extensions: +grid_tables
+    toc: yes
+    toc_depth: 3
+  html_document:
+    highlight: pygments
+    theme: cerulean
+    code_folding: show
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    md_extensions: +grid_tables
+classoption: portrait
+editor_options:
+  chunk_output_type: inline
+header-includes: 
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+<style>
+  .main-container {
+    max-width: 1200px !important;
+  }
+</style>
+
+---
+
+
+```{r setup, eval=T, echo=F}
+# Setup
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.pos='H')
+mydir = "C:/Users/Michael/Dropbox/priv/CUNY/MSDS/201909-Fall/DATA605_Larry/20191215_Week16/"
+knitr::opts_knit$set(root.dir = mydir)
+setwd(mydir)
+
+### Make the output wide enough
+options(scipen = 999, digits=9, width=80)
+```
+
+```{r load, eval=T, message=F,warning=F, echo=F}
+### load some libraries
+library(datasets)
+library(kableExtra)
+```
+
+# FINAL  
+
+Your final is due by the end of the last week of class.     
+You should post your solutions to your GitHub account or RPubs.      
+You are also expected to make a short presentation via YouTube and post that recording to the board.     
+This project will show off your ability to understand the elements of the class. 
+
+***
+\newpage
+# Problem 1.
+
+Using R, generate a random variable $X$ that has 10,000 random **uniform** numbers from 1 to $N$, where $N$ can be any number of your choosing greater than or equal to 6.    
+
+## Generate X = U(1,N)
+```{r gen-X}
+# set seed, for reproducibility
+set.seed(12344)
+### Note: seed =12345 will give the opposite result, causing rejection of the Null Hypothesis
+
+# set maximum value for N
+N <- 7
+
+# generate 10,000 random uniform numbers between 1 and N
+X <- runif(n = 10000,min = 1,max = N)
+
+# obtain summary statistics on the distribution of X
+summary(X)
+Xmean = round(summary(X)["Mean"],4)
+Xmedian= round(summary(X)["Median"],4)
+Xsd = sd(X)
+Xsd_theo = (N-1)/sqrt(12)
+print(paste("Actual standard deviation of X     : ",round(Xsd,4)))
+print(paste("Theoretical standard deviation of X: ",round(Xsd_theo,4)))
+
+# plot a histogram of X, with vertical bars designating the mean and +/- 1 stdev
+Xmaintitle = paste0("Histogram of X = U(1,", N,
+                    "), with mean in blue and +/- 1 stdev in red")
+hist(X,col="lightgreen",main = Xmaintitle)
+abline(v=Xmean,col="blue",lwd=5,lty="solid")
+abline(v=Xmean-Xsd,col="red",lwd=5,lty="dashed")
+abline(v=Xmean+Xsd,col="red",lwd=5,lty="dashed")
+```
+
+Then generate a random variable $Y$ that has 10,000 random **normal** numbers with a mean of $\mu=\sigma=\frac{N+1}{2}$.  
+
+## Generate $Y=N(\mu=\frac{N+1}{2} , \sigma=\frac{N+1}{2})$
+```{r gen-Y}
+# generate 10,000 random  numbers with the specified Normal distribution
+Y <- rnorm(n = 10000, mean = (N+1)/2, sd = (N+1)/2)
+# obtain summary statistics on the distribution of Y
+summary(Y)
+Ymean = round(summary(Y)["Mean"],4)
+Ymean_theo = (N+1)/2
+Ymedian= round(summary(Y)["Median"],4)
+Ysd = sd(Y)
+Ysd_theo = (N+1)/2
+print(paste("Actual standard deviation of X     : ",round(Ysd,4)))
+print(paste("Theoretical standard deviation of X: ",round(Ysd_theo,4)))
+
+# plot a histogram of Y, with vertical bars designating the median and +/- 1 stdev
+Ymaintitle = paste0("Histogram of Y = N(", Ymean_theo, ",", Ysd_theo, "), with mean in blue and +/- 1 stdev in red")
+Ysubtitle = paste0("First and Third Quartiles in Black")
+hist(Y,col="lightgreen",breaks = 22, main = Ymaintitle, sub=Ysubtitle)
+abline(v=Ymean,col="blue",lwd=5,lty="solid")
+abline(v=Ymean-Ysd,col="red",lwd=5,lty="dashed")
+abline(v=Ymean+Ysd,col="red",lwd=5,lty="dashed")
+abline(v=summary(Y)["1st Qu."], col="black",lwd=6)
+abline(v=summary(Y)["3rd Qu."], col="black",lwd=6)
+
+```
+
+## Scatterplot of X and Y:
+```{r scatter, fig.width=8,fig.height=8}
+scat_maintitle = paste0("Scatterplot of X = U(1,", N,") vs. Y = N(", Ymean_theo, ",", Ysd_theo, ")")
+scat_subtitle = "Medians in blue; +/- 1 stdev in red; IQR(Y) in black"
+plot(Y~X, col="brown", pch="o", cex=0.3, main=scat_maintitle, sub=scat_subtitle)
+abline(v=Xmedian,col="blue",lwd=5,lty="solid")
+abline(v=Xmean-Xsd,col="red",lwd=5,lty="dashed")
+abline(v=Xmean+Xsd,col="red",lwd=5,lty="dashed")
+abline(h=Ymedian,col="blue",lwd=5,lty="solid")
+abline(h=Ymean-Ysd,col="red",lwd=5,lty="dashed")
+abline(h=Ymean+Ysd,col="red",lwd=5,lty="dashed")
+abline(h=summary(Y)["1st Qu."], col="black",lwd=6)
+abline(h=summary(Y)["3rd Qu."], col="black",lwd=6)
+```
+
+
+***
+\newpage
+
+## ***5 points*** Probability.     
+
+Calculate as a minimum the below probabilities a through c.    
+
+Assume:
+
+#### x=Median(X)
+
+* The small letter "$x$" is estimated as the ***median*** of the $X$ variable, and 
+```{r get-x}
+x <- summary(X)["Median"]
+x
+```
+
+#### y=First Quartile(Y)
+
+* The small letter "$y$" is estimated as the ***1st quartile*** of the $Y$ variable.     
+```{r get-y}
+y <- summary(Y)["1st Qu."]
+y
+```
+
+Interpret the meaning of all probabilities.
+
+
+\newpage
+
+### a.  $P(X>x | X>y)$ 
+```{r prob-a}
+### Extract the values of X which are greater than y (the first quartile of Y)
+tempa1 <- X[X>y]
+### Count them
+denom_a <- length(tempa1)
+### Extract the values of the above subset which are greater than x (the median of X)
+tempa2 <- tempa1[tempa1>x]
+### Count them
+numer_a <- length(tempa2)
+### Compute the probability as the ratio of the above two items
+prob_a <- numer_a / denom_a
+```
+
+There are `r denom_a` values in $X$ where such value is greater than `r y`, the first quartile of $Y$.     
+
+Of these values in $X$, there are `r numer_a` values where such value is greater than `r x`, the median of $X$.      
+
+Therefore, the requested probability $Pr(X>x | X>y)=\frac{`r numer_a`}{`r denom_a`} = `r prob_a`$ . 
+
+```{r explain-a}   
+Amaintitle = paste0("Histogram of X = U(1,", N,"), with Median(X) in blue and 1st Qtl(Y) in red")
+hist(X,breaks=20, col="green", main=Amaintitle)
+abline(v=summary(X)["Median"],col="blue", lwd=4)
+abline(v=summary(Y)["1st Qu."], col="red", lwd=4)
+```
+
+The statement $Pr(X>x | X>y)$ means:
+
+* "The probability that $X$ is greater than $x$ (i.e., the blue line) 
+* **given that** 
+* $X$ is greater than $y$ (i.e., the red line.)"    
+
+Of the values of X which are to the right of the red line, the probability is `r prob_a` that they are also to the right of the blue line.
+
+\newpage
+### b.  $P(X>x, Y>y)$		   
+
+This is the probability that  $X$ is greater than $x$ ***and*** $Y$ is greater than $y$ .
+
+Because $X$ and $Y$ are independently generated, $P(X>x, Y>y) = P(X>x) \cdot P(Y>y)$ .     
+
+Because $x$ is the median of $X$, $P(X>x)=0.5$ .    
+Because $y$ is the first quartile of $Y$, $P(Y>y) = 0.75$ .    
+
+Therefore, the answer must be $P(X>x, Y>y) = P(X>x) \cdot P(Y>y) = 0.5 \cdot 0.75 = 0.375$ .
+
+Empirically:
+```{r partb}
+### Extract those values in X which are greater than the median of X 
+tempx <- X[X>x]
+### Count them  (must be 5000, by definition of median)
+length(tempx)
+### Compute the probability (must be half, by definition of median)
+probx <- length(tempx)/length(X)
+
+### Extract those values in Y which are greater than the first quartile of Y 
+tempy <- Y[Y>y]
+### Count the (must be 7500, by definition)
+length(tempy)
+### Compute the probability (must be three quarters, by definition of quartiles)
+proby <- length(tempy)/length(Y)
+
+### Compute the result, utilize the assumption of independence of X and Y
+result <- probx * proby
+result
+```
+
+This confirms that the result is `r result`, which equals $\frac{3}{8}$ .
+
+Visually:
+```{r scatterB, fig.width=8,fig.height=8}
+scat_maintitle = paste0("Scatterplot of X = U(1,", N,") vs. Y = N(", Ymean_theo, ",", Ysd_theo, ")")
+scat_subtitle = "Median(X) in blue; First Quartile(Y) in black"
+plot(Y~X, col="brown", pch="o", cex=0.3, main=scat_maintitle, sub=scat_subtitle)
+abline(v=Xmedian,col="blue",lwd=5,lty="solid")
+abline(h=summary(Y)["1st Qu."], col="black",lwd=6)
+```
+
+Three-quarters of the dots are above the black line (first quartile of Y.)    
+Of these, half are to the right of the blue line (Median of X).
+
+Therefore, $\frac{3}{8}$ of the dots are in the upper right quadrant in the above scatterplot.
+
+\newpage
+### c.  $P(X<x | X>y)$		  		
+```{r prob-c}
+### Extract the values of X which are greater than y (the first quartile of Y)
+tempc1 <- X[X>y]
+### Count them - should be the same as in part (a) above
+denom_c <- length(tempc1)
+### Extract the values of the above subset which are LESS THAN than x (the median of X)
+tempc2 <- tempc1[tempc1<x]
+### Count them
+numer_c <- length(tempc2)
+### Compute the probability as the ratio of the above two items  -- 
+###          should be 1 minus the probability from part (a)
+prob_c <- numer_c / denom_c
+```
+
+
+There are `r denom_c` values in $X$ where such value is ***greater*** than `r y`, the ***first quartile*** of $Y$.     
+Of these values in $X$, there are `r numer_c` values where such value is ***less*** than `r x`, the ***median*** of $X$.      
+Therefore, the requested probability is $Pr(X>x | X>y)=\frac{`r numer_c`}{`r denom_c`} = `r prob_c`$ . 
+
+It is worth noting that this this result, plus the result from part (a), sum up to 1.
+
+The statement $Pr(X<x | X>y)$ means:
+
+* "The probability that $X$ is ***less*** than $x$ (i.e., the blue line) 
+* **given that** 
+* $X$ is greater than $y$ (i.e., the red line.)"    
+
+Of the values of X which are to the right of the red line, the probability is `r prob_a` that they are also to the ***left*** of the blue line (i.e., between the red line and the blue line.)
+
+
+
+
+***
+\newpage
+## ***5 points.*** Joint and Marginal          
+
+Investigate whether $P(X>x \bigwedge Y>y)=P(X>x)\cdot P(Y>y)$ by building a table and evaluating the marginal and joint probabilities.
+
+```{r joint-marginal}
+### Build a table of the 4 cases
+actual <- table(X>x,Y>y,dnn = c("X>x","Y>y"))
+actual
+
+### Display the above, as probabilities
+prop.table(actual)
+
+### Display the marginal probabilities, by row
+### P(Y>y|X)
+prop.table(actual,margin = 1)
+
+### Display the marginal probabilities, by column
+### P(X>x|y)
+prop.table(actual,margin = 2)
+
+### Display the expected results
+expected = margin.table(actual, margin=1) %*% t(margin.table(actual, margin=2))/margin.table(actual)
+rownames(expected)=colnames(expected)
+dimnames(expected)<-dimnames(actual)
+expected <- as.table(expected)
+
+### Display the expected results, as probabilities
+prop.table(expected)
+
+### Are Actual and Expected equal?
+result <- all.equal(actual,expected)
+result
+
+if(isTRUE(result)) {
+  print("Actual and expected are equal")
+} else {
+  print("Actual and expected are different")
+}
+
+
+```
+
+
+***
+\newpage
+## ***5 points.*** Fisher's Exact vs. $\chi^2$ tests     
+
+Check to see if independence holds by using ***Fisher’s Exact Test*** and the ***Chi Square Test***.   
+
+* $H_0$: Variables $X$ and $Y$ are ***independent***.    
+* $H_a$: Variables $X$ and $Y$ are ***not independent***.    
+
+### Fisher's Exact Test
+```{r fisher-exact}
+fisher<-fisher.test(actual)
+fisher
+
+if (fisher$p.value < 0.05) {
+  fisher.result <-     
+    "***reject the null***: Actual differs too much from expected, 
+    so X and Y are ***not independent***."
+} else {
+  fisher.result <-     
+    "***fail to reject*** the null: Actual is close enough to expected, 
+    so X and Y ***are*** independent."
+}
+```
+
+The p-value from the Fisher Exact test is `r fisher$p.value` .   
+This means that we `r fisher.result`
+
+### $\chi^2$ test
+
+```{r chi-squared}
+chi2 <-chisq.test(actual,correct=F)
+chi2
+
+if (chi2$p.value < 0.05) {
+  chi2.result <- 
+    "***reject the null***: Actual differs too much from expected, 
+    so X and Y are ***not independent***."
+} else {
+  chi2.result <- 
+    "***fail to reject*** the null: Actual is close enough to expected, 
+    so X and Y ***are*** independent."
+}
+```
+
+The p-value from the $\chi^2$ test test is `r chi2$p.value` .   
+This means that we `r chi2.result`
+
+
+### What is the difference between the two?     
+
+The $\chi^2$ test requires that the expected number of counts in each cell of the contingency matrix is at least 5, while the Fisher's Exact Test is used when the count data in the respective cells is small (i.e., some cell has fewer than 5 elements.)
+
+### Which is most appropriate?    
+
+As the counts in each cell are large, that would suggest that the $\chi^2$ test is preferred.
+
+However, because both tests are designed to be used on ***Categorical*** data, **neither is appropriate here** because we are essentially testing the quality of our random number generator, as it is clear that each of the variables $X$ and $Y$ has been generated independently of the other.   
+In this case, for the above seed, the difference between actual and expected is ***`r max(actual-expected)`*** .    
+
+I have determined that for these samples of size 10,000, if the counts in the contingency table are ***no more than 43 distant*** from the expected counts, then the tests will pass (more correctly, "fail to reject") at 95% confidence, returning p-values above 0.05.
+
+Whether the tests pass or fail is closely coupled to the selection of the random seed.  
+For example, running the above with ***seed=12345*** will shift the results sufficiently for **both** tests to ***reject the null*** hypothesis. 
+(For that particular seed, the actual counts differ by **58** from the expected counts, resulting in rejection of the null hypothesis.)
+
+
+
+***
+
+********************************************************************************************************************
+********************************************************************************************************************
+********************************************************************************************************************
+
+\newpage
+# Problem 2.
+
+
+You are to register for Kaggle.com (free) and compete in the House Prices: Advanced Regression Techniques competition.  https://www.kaggle.com/c/house-prices-advanced-regression-techniques .    
+
+
+```{r load-kaggle-data}
+library(tidyverse)
+library(kableExtra)
+na.strings=c("NA","NaN", " ", "")
+train.df <- read.csv('train.csv',na.strings=na.strings)     # 1460 obs of 81 variables
+test.df <- read.csv('test.csv',na.strings=na.strings)       # 1459 obs of 80 variables
+```
+
+#### Data fields
+
+##### **Let's preview the training dataset: (columns & rows transposed for viewing)**
+
+```{r echo=FALSE}
+print(paste("Number of columns = ", ncol(train.df)))
+print(paste("Number of rows = ", nrow(train.df)))
+# head of the dataset (transposed)
+# first half
+t(head(train.df)) %>% head(41) %>% kable() %>% kable_styling(c("striped", "bordered"))
+# second half
+t(head(train.df)) %>% tail(40) %>% kable() %>% kable_styling(c("striped", "bordered"))
+
+```
+
+
+
+##### Data Description summary
+
+* ***SalePrice*** - **the property's sale price in dollars. This is the target variable that you're trying to predict.**
+* MSSubClass: The building class
+* MSZoning: The general zoning classification
+* LotFrontage: Linear feet of street connected to property
+* LotArea: Lot size in square feet
+* Street: Type of road access
+* Alley: Type of alley access
+* LotShape: General shape of property
+* LandContour: Flatness of the property
+* Utilities: Type of utilities available
+* LotConfig: Lot configuration
+* LandSlope: Slope of property
+* Neighborhood: Physical locations within Ames city limits
+* Condition1: Proximity to main road or railroad
+* Condition2: Proximity to main road or railroad (if a second is present)
+* BldgType: Type of dwelling
+* HouseStyle: Style of dwelling
+* OverallQual: Overall material and finish quality
+* OverallCond: Overall condition rating
+* YearBuilt: Original construction date
+* YearRemodAdd: Remodel date
+* RoofStyle: Type of roof
+* RoofMatl: Roof material   
+* Exterior1st: Exterior covering on house
+* Exterior2nd: Exterior covering on house (if more than one material)
+* MasVnrType: Masonry veneer type
+* MasVnrArea: Masonry veneer area in square feet
+* ExterQual: Exterior material quality
+* ExterCond: Present condition of the material on the exterior
+* Foundation: Type of foundation
+* BsmtQual: Height of the basement
+* BsmtCond: General condition of the basement
+* BsmtExposure: Walkout or garden level basement walls
+* BsmtFinType1: Quality of basement finished area
+* BsmtFinSF1: Type 1 finished square feet
+* BsmtFinType2: Quality of second finished area (if present)
+* BsmtFinSF2: Type 2 finished square feet
+* BsmtUnfSF: Unfinished square feet of basement area
+* TotalBsmtSF: Total square feet of basement area
+* Heating: Type of heating
+* HeatingQC: Heating quality and condition
+* CentralAir: Central air conditioning
+* Electrical: Electrical system
+* 1stFlrSF: First Floor square feet
+* 2ndFlrSF: Second floor square feet
+* LowQualFinSF: Low quality finished square feet (all floors)
+* GrLivArea: Above grade (ground) living area square feet
+* BsmtFullBath: Basement full bathrooms
+* BsmtHalfBath: Basement half bathrooms
+* FullBath: Full bathrooms above grade
+* HalfBath: Half baths above grade  
+* Bedroom: Number of bedrooms above basement level
+* Kitchen: Number of kitchens
+* KitchenQual: Kitchen quality
+* TotRmsAbvGrd: Total rooms above grade (does not include bathrooms)
+* Functional: Home functionality rating
+* Fireplaces: Number of fireplaces
+* FireplaceQu: Fireplace quality 
+* GarageType: Garage location
+* GarageYrBlt: Year garage was built
+* GarageFinish: Interior finish of the garage
+* GarageCars: Size of garage in car capacity 
+* GarageArea: Size of garage in square feet
+* GarageQual: Garage quality
+* GarageCond: Garage condition
+* PavedDrive: Paved driveway 
+* WoodDeckSF: Wood deck area in square feet
+* OpenPorchSF: Open porch area in square feet
+* EnclosedPorch: Enclosed porch area in square feet
+* 3SsnPorch: Three season porch area in square feet
+* ScreenPorch: Screen porch area in square feet
+* PoolArea: Pool area in square feet
+* PoolQC: Pool quality
+* Fence: Fence quality
+* MiscFeature: Miscellaneous feature not covered in other categories
+* MiscVal: $Value of miscellaneous feature
+* MoSold: Month Sold
+* YrSold: Year Sold
+* SaleType: Type of sale
+* SaleCondition: Condition of sale
+
+##### Fix categorical (non-numeric) variable MSSubClass
+
+The variable MSSubclass is categorical, but it labels each class using an integer between 20 and 190:   
+
+MSSubClass: Identifies the type of dwelling involved in the sale.	 
+
+       +---+--------------------------------------------------------+
+       |Val|  Description                                           |
+       +===+========================================================+
+       |20 |  1-STORY 1946 & NEWER ALL STYLES                       |
+       +---+--------------------------------------------------------+
+       |30 |  1-STORY 1945 & OLDER                                  |
+       +---+--------------------------------------------------------+
+       |40 |  1-STORY W/FINISHED ATTIC ALL AGES                     |
+       +---+--------------------------------------------------------+
+       |45 |  1-1/2 STORY - UNFINISHED ALL AGES                     |
+       +---+--------------------------------------------------------+
+       |50 |  1-1/2 STORY FINISHED ALL AGES                         |
+       +---+--------------------------------------------------------+
+       |60 |  2-STORY 1946 & NEWER                                  |
+       +---+--------------------------------------------------------+
+       |70 |  2-STORY 1945 & OLDER                                  |
+       +---+--------------------------------------------------------+
+       |75 |  2-1/2 STORY ALL AGES                                  |
+       +---+--------------------------------------------------------+
+       |80 |  SPLIT OR MULTI-LEVEL                                  |
+       +---+--------------------------------------------------------+
+       |85 |  SPLIT FOYER                                           |
+       +---+--------------------------------------------------------+
+       |90 |  DUPLEX - ALL STYLES AND AGES                          |
+       +---+--------------------------------------------------------+
+       |120|  1-STORY PUD (Planned Unit Development) - 1946 & NEWER |
+       +---+--------------------------------------------------------+
+       |150|  1-1/2 STORY PUD - ALL AGES                            |
+       +---+--------------------------------------------------------+
+       |160|  2-STORY PUD - 1946 & NEWER                            |
+       +---+--------------------------------------------------------+
+       |180|  PUD - MULTILEVEL - INCL SPLIT LEV/FOYER               |
+       +---+--------------------------------------------------------+
+       |190|  2 FAMILY CONVERSION - ALL STYLES AND AGES             |
+       +---+--------------------------------------------------------+
+
+
+Such data was loaded in as numeric, but it should not be treated this was, as there is no ordinal relation between the classes:
+```{r change-MSSubClass}
+train.df$MSSubClass<-as.factor(train.df$MSSubClass)
+## implement the same transform for test dataset
+test.df$MSSubClass<-as.factor(test.df$MSSubClass)
+
+```
+
+\newpage
+#### **Check missing values**
+
+#### Let's check whether any variables have missing values, e.g., values which are NULL or NA:
+
+##### check for train
+```{r missing-data-TRAIN}
+miss.cols = apply(train.df, 2, function(x) any(is.na(x)))
+miss.cols = miss.cols[miss.cols==T]
+num.NAs = apply(train.df, 2, function(x) sum(is.na(x)))
+num.NAs = num.NAs[num.NAs>0]
+print(paste("Number of TRAIN columns with missing values = ", length(names(miss.cols))))
+# Number of missing elements in TRAIN:
+num.NAs %>% 
+  kable(caption = "Quantity of missing elements in TRAIN") %>% 
+  kable_styling(c("striped", "bordered"),full_width = F)
+```
+
+\newpage
+##### check for test
+```{r missing-data-test}
+test.miss.cols = apply(test.df, 2, function(x) any(is.na(x)))
+test.miss.cols = test.miss.cols[test.miss.cols==T]
+test.num.NAs = apply(test.df, 2, function(x) sum(is.na(x)))
+test.num.NAs = test.num.NAs[test.num.NAs>0]
+print(paste("Number of TEST columns with missing values = ", length(names(test.miss.cols))))
+# Number of TEST missing elements:
+test.num.NAs %>% 
+  kable(caption = "Quantity of missing elements in TEST") %>% 
+  kable_styling(c("striped", "bordered"),full_width = F)
+```
+
+
+\newpage
+##### split up TRAINING dataset by numeric|factor ; missing|none missing
+
+Make separate dataframes to split up the variables based on
+
+* variables with some missing elements, vs variables with nothing missing
+* numeric vs. categorical (factors)
+
+```{r split-up-dataset}
+#### Missing vs. none missing
+# 19 variables --> 0 after cleaning
+train.df.somemissing=train.df[sapply(train.df, function(x) sum(is.na(x))>0)]
+# 62 variables --> 81 after cleaning
+train.df.nomissing=train.df[sapply(train.df, function(x) sum(is.na(x))==0)]
+
+#### numeric vs. factors
+# 38 variables -> 37
+train.df.numeric=train.df[sapply(train.df, is.numeric)]
+# 43 variables -> 44
+train.df.factor=train.df[sapply(train.df, is.factor)]
+
+#### numeric/factor none missing
+# 35 variables -> 34 -> 37
+train.df.numeric.nomissing = train.df.nomissing[sapply(train.df.nomissing, is.numeric)]
+# 27 variables -> 28 -> 44
+train.df.factor.nomissing =  train.df.nomissing[sapply(train.df.nomissing, is.factor)]
+```
+
+\newpage
+##### Data cleaning -- **NA**s which mean "Not Applicable" rather than "Unknown" or "Not Available
+
+It appears that there may be two different meanings to the NA values shown.
+
+For some variables, an "NA" may mean "Not Applicable".  In such cases, it doesn't make sense to impute various values for such items; rather they should all be set to something like "None" which is treated as a separate factor level, rather than "NA".
+
+This may be the case for the following variables:
+
+##### Reassign Alley NAs to None
+`Alley`: Only some houses are built with an alley behind them, most are not. This is a publically visible feature, the determination of which doesn't require entry to the house.  Clearly, the large number of NA values here (1369) indicate that that there is no alley.  The non-NA values indicate that an existing alley is "Gravel" or "Paved."  We will replace "NA" with "None".
+
+##### Reassign FireplaceQu NAs to None
+`FireplaceQu`: In the train dataset, there are 690 houses with zero fireplaces; for each of these, the rating of Fireplace Quality is "NA".  Clearly this is "Not Applicable" (rather than unknown) so we shall change it to "None" rather than "NA", as above.
+
+##### Reassign Garage NAs to None
+In the train dataset, there are 81 houses with no garage; for each of these, the following categorical variables are set to "NA".  
+
+* `GarageType`	
+* `GarageFinish`		
+* `GarageQual`	
+* `GarageCond`
+
+Clearly this is "Not Applicable" (rather than unknown) so we shall change it to "None" rather than "NA", as above.
+
+###### Reassign GarageYrBlt to house's YearBuilt, in case where there is no garage
+Additionally, there is a fifth garage variable, `GarageYrBlt`, which is numeric -- the year the garage was built.  
+Here it is NA because there is no garage.  We will set it to the year in which the house was built:
+
+```{r fix-GarageYrBlt}
+train.df$GarageYrBlt[is.na(train.df$GarageYrBlt)] <- train.df$YearBuilt[is.na(train.df$GarageYrBlt)]
+### do the same for the test data:
+test.df$GarageYrBlt[is.na(test.df$GarageYrBlt)] <- test.df$YearBuilt[is.na(test.df$GarageYrBlt)]
+
+```
+
+In the test data set, there is one case where the following Numeric variables are set to "NA" :
+
+* `GarageCars`	    
+* `GarageArea`    
+
+We will set them to zero, as it appears that the property in question has no garage.
+
+###### Fix GarageCars and GarageArea
+```{r fix-test-garage}
+summary(test.df$GarageCars)
+test.df$GarageCars[is.na(test.df$GarageCars)] <- 0
+##class(test.df$GarageCars)<-"integer"
+summary(test.df$GarageCars)
+
+summary(test.df$GarageArea)
+test.df$GarageArea[is.na(test.df$GarageArea)] <- 0
+##class(test.df$GarageArea)<-"integer"
+summary(test.df$GarageArea)
+```
+
+##### Pools and other items
+
+* Only 7 houses have pools.  The other 1453 all have "NA" value for `PoolQC`.  We'll change to None.     
+* Similarly, only 241 houses have a `Fence`, with the other 1179 marked "NA".  We'll change to None.    
+* Finally, only 54 houses have a `MiscFeature` (e.g., a shed or a second garage), with the other 1406 marked "NA".
+We'll add these items to the list.
+
+##### No Basements
+
+There are 37 houses with no basements, which is indicated by `TotalBsmtSF`=0 .   
+For such houses, the following categorical variables are set to NA:
+
+* `BsmtQual`
+* `BsmtCond`
+* `BsmtExposure`
+* `BsmtFinType1`
+* `BsmtFinType2`
+
+Additionally, in TEST there is one house without basement, for which the following numerical variables are set to NA (rather than zero):
+
+* `BsmtFinSF1`
+* `BsmtFinSF2`
+* `BsmtUnfSF`
+* `TotalBsmtSF`
+* `BsmtFullBath`
+* `BsmtHalfBath`
+
+We will set them to zero:
+```{r fix-test-basement-numeric-zero}
+basementlist = c("BsmtFinSF1","BsmtFinSF2","BsmtUnfSF","TotalBsmtSF","BsmtFullBath","BsmtHalfBath")
+for (g in basementlist) {
+  print(g)
+  print(summary(test.df[[g]]))
+  test.df[[g]][is.na(test.df[[g]])] <- 0
+  ##class(test.df[[g]]) <-"integer"
+  print(summary(test.df[[g]]))
+  print("----------------------------------------------")
+}
+
+
+```
+
+
+\newpage
+##### Fix Masonry Veneer: MasVnrType (categorical), MasVnrArea (numerical)
+There are 8 houses for which these variables are set to NA, suggesting the true value is unknown.  Additionally there are about 860 cases where MasVnrType is already set to "None" and MasVnrArea is already set to zero.
+We attempted using the MICE multiple imputation (below) but it failed.  Thus we will set these 8 cases to "None" or 0 as appropriate.
+
+```{r fixMasVnr}
+summary(train.df$MasVnrType)
+train.df$MasVnrType[is.na(train.df$MasVnrType)] <- "None"
+summary(train.df$MasVnrType)
+
+summary(train.df$MasVnrArea)
+train.df$MasVnrArea[is.na(train.df$MasVnrArea)] <- 0
+#class(train.df$MasVnrArea)<-"integer"
+summary(train.df$MasVnrArea)
+
+#### do the same for test
+summary(test.df$MasVnrType)
+test.df$MasVnrType[is.na(test.df$MasVnrType)] <- "None"
+summary(test.df$MasVnrType)
+
+summary(test.df$MasVnrArea)
+test.df$MasVnrArea[is.na(test.df$MasVnrArea)] <- 0
+#class(test.df$MasVnrArea)<-"integer"
+summary(test.df$MasVnrArea)
+```
+
+###### Electrical
+There is a single case where "Electrical" has value NA.  Multiple imputation (below) failed, so we add it to this list to be set to None.
+
+
+##### On the test data set, multiple imputation (MICE) failed.  The following categorical variables have a handful of NA values in test.df, but none in train.df .  So, we add them to the list below for replacement with "None".
+
+* MSZoning
+* Utilities
+* Exterior1st
+* Exterior2nd
+* KitchenQual
+* Functional
+* SaleType
+
+
+##### List of categorical variables for which "NA" is to be replaced by level "None"
+```{r combined-change-list}
+changelist = c("Alley", "FireplaceQu", 
+               "GarageType", "GarageFinish", "GarageQual", "GarageCond", 
+               "PoolQC", "Fence", "MiscFeature",
+               "BsmtQual","BsmtCond","BsmtExposure","BsmtFinType1","BsmtFinType2", 
+               "Electrical", 
+               "MSZoning", "Utilities", "Exterior1st", "Exterior2nd" , 
+               "KitchenQual", "Functional", "SaleType" )
+```
+
+##### Loop through above list
+```{r reassign-NAs-to-None}
+
+for (g in changelist) {
+  
+print(paste("TRAIN: CHANGING NAs for ", g))
+  
+print(levels(train.df[[g]]))
+print(table(train.df[[g]],useNA = "ifany"))
+
+### We need to add one more level on the factor
+(levels(train.df[[g]]) <- c(levels(train.df[[g]]),"None"))
+print(table(train.df[[g]],useNA = "ifany"))
+
+### Reassign the NAs to None
+(train.df[[g]][is.na(train.df[[g]])] <- "None")
+
+### See what we have now
+print(table(train.df[[g]],useNA = "ifany"))
+
+print("_________________________________________________________________________________________")
+
+print(paste("***TEST: CHANGING NAs for ", g, "***"))
+  
+print(levels(test.df[[g]]))
+print(table(test.df[[g]],useNA = "ifany"))
+
+### We need to add one more level on the factor
+(levels(test.df[[g]]) <- c(levels(test.df[[g]]),"None"))
+print(table(test.df[[g]],useNA = "ifany"))
+
+### Reassign the NAs to None
+(test.df[[g]][is.na(test.df[[g]])] <- "None")
+
+### See what we have now
+print(table(test.df[[g]],useNA = "ifany"))
+
+print("=========================================================================================")
+}
+```
+
+
+
+\newpage
+##### Impute LotFrontage - set to zero
+Numerical variable "LotFrontage" is causing problems with the imputation -- it's generating a "computationally singular" problem under multiple imputation. So, I'll manually set its value to zero, because it suggests that the lot on which the property is situated may not have any street frontage.
+
+```{r impute-LotFrontage}
+summary(train.df$LotFrontage)
+train.df$LotFrontage[is.na(train.df$LotFrontage)]<-0
+#class(train.df$LotFrontage)<-"integer"                  ## otherwise it flipped to numeric
+summary(train.df$LotFrontage)
+
+## do the same for test data
+summary(test.df$LotFrontage)
+test.df$LotFrontage[is.na(test.df$LotFrontage)]<-0
+#class(test.df$LotFrontage)<-"integer"                  ## otherwise it flipped to numeric
+summary(test.df$LotFrontage)
+```
+
+
+\newpage
+#####  **AUTOMATED DATA IMPUTATION**
+
+Note:  The below usage of MICE did not work -- it gave numerous errors.  
+Therefore, I manually made the above changes to the data as detailed above.   
+At this point, there are no more NAs in either dataset.
+
+
+##### Let's do data imputation for columns with missing values.
+##### Which columns have missing values, and what is a missing pattern?    
+##### Let's leverage VIM package to get this information:  
+
+```{r echo=FALSE, message=F, warning=F}
+library(VIM)
+ggr_plot <- aggr(train.df, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(train.df), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+#LotFrontage, MasVnrType,MasVnrArea,Electrical,GarageYrBlt
+```
+
+There are now NO columns remaining (in the TRAINING data set) with NA values, as we have manually replaced everything as discussed above.  At the same time, we repeated such changes on the TEST data set.
+
+##### Let's use the **mice** package to impute missing values
+##### **MICE**: "Multivariate Imputation by Chained Equations"
+(Note: this did not work, when there were still variables to be imputed.)   
+
+The **mice** package implements a method to deal with missing data.    
+The package creates multiple imputations (replacement values) for multivariate missing data.    
+The method is based on Fully Conditional Specification, where each incomplete variable is imputed by a separate model.    
+The MICE algorithm can impute mixes of continuous, binary, unordered categorical and ordered categorical data.     
+In addition, MICE can impute continuous two-level data, and maintain consistency between imputations by means of passive imputation.    
+Many diagnostic plots are implemented to inspect the quality of the imputations.
+
+##### run MICE on TRAIN data set
+```{r impute-results-TRAIN}
+library(mice)
+save.train.df <- train.df
+comp.data <- mice(train.df,m=2,maxit=10,seed=500)
+train.df = complete(comp.data)
+### nothing changed -- because we did all imputations manually, above
+all.equal(train.df,save.train.df)
+```
+
+\newpage
+##### run MICE on TEST data set
+
+Earlier this failed with "too many weights."  Thus, each imputation of missing data was performed manually, as discussed above.    
+Here we confirm that there is nothing further which requires imputation:    
+
+```{r impute-results-TEST}
+library(mice)
+save.test.df <- test.df
+test.comp.data <- mice(test.df,m=2,maxit=10,seed=500)
+test.df = complete(test.comp.data)
+### What's changed?
+all.equal(train.df,save.train.df)
+```
+
+
+
+\newpage
+#### I want you to do the following:
+
+## ***5 points.*** Descriptive and Inferential Statistics.    
+
+
+#### Provide ***univariate descriptive statistics*** and ***appropriate plots*** for the training data set.  
+
+```{r univariate-descriptive-statistics, fig.width=6, fig.height=20}
+summary(train.df)
+```
+
+\newpage
+#### Plot each variable, along with its summary data
+
+##### For numeric variables, we will add vertical lines for Mean (black), Median (green) and +/- 1 standard deviation (red-dashed) above and below the mean
+##### Also we will attempt to overlay Normal (blue) and Exponential (purple, dashed) densities on the histogram.
+##### (Depending on the nature of the data, such densities may or may not make sense...)
+
+```{r my-summary-and-plots, fig.width=8, fig.height=8}
+
+### Don't bother plotting the first variable ("ID") because it's simply an index
+for (item in 2:length(train.df) ){ #length(train.df)) {
+  thisname = attr(train.df[item],"names")
+  # create a title which incorporates the sequence number     
+  # of the variable along with the name, for guidance
+  mainheader = paste(item, ": ", thisname)
+  #print(thisname)
+  rawitem  = train.df[item]
+  thisitem = train.df[[item]]
+  thisclass = class(thisitem)
+  ### display the factor items
+  if(thisclass == "factor"){
+    factorresult=table(thisitem,useNA = "ifany",dnn = thisname)
+    par(mfrow = c(1, 1))
+    (barplot(factorresult,
+             col=rainbow(length(factorresult)),
+             main=mainheader, 
+             las=2))
+    print(factorresult)
+  
+  }
+  else if (thisclass=="integer"||thisclass=="numeric") {
+    ## Compute the summary statistics, plus the standard deviation
+    numresult=c(summary(thisitem),
+                STDEV=sd(thisitem,na.rm=T))
+    par(mfrow = c(2, 1))
+    ## plot the histogram
+    hist(thisitem,breaks=30,main = mainheader,xlab=thisname,col="lightblue",probability =  T)
+    
+    ## add a normal curve fit
+    curve(dnorm(x, mean = mean(thisitem), sd = sd(thisitem)), col="blue", lwd=3 , add=TRUE)
+    
+    ## add an exponential curve fit
+    curve(dexp(x, rate=1/mean(thisitem)), col="purple", lwd=3, lty="dashed", add=TRUE)
+    
+    ## add a vertical line for median
+    abline(v=numresult["Median"],col="green", lwd=2)
+    
+    ## add a vertical line for mean
+    abline(v=numresult["Mean"],col="black",lwd=2)
+
+    ## add vertical lines for down and up one standard deviation
+    abline(v=numresult["Mean"]-numresult["STDEV"],col="red",lty="dashed", lwd=2)
+    abline(v=numresult["Mean"]+numresult["STDEV"],col="red",lty="dashed", lwd=2)
+    
+    ## add a boxplot
+    boxplot(thisitem,horizontal = T, col="lightblue", main=mainheader)
+    print(numresult)
+  } 
+}
+
+```
+
+##### ***Transform SalePrice by taking log***
+
+If we try to predict SalePrice ~ [some list of variables] there is a chance that the result could be negative.   
+This would not make sense.   
+We want to ensure that the model only returns positive values for SalePrice.
+One way to do this is to fit log(SalePrice) rather than Saleprice.
+```{r xform-train}
+summary(train.df$SalePrice)
+logtrain.df <- train.df %>% mutate(SalePrice = log(SalePrice))
+summary(logtrain.df$SalePrice)
+```
+
+##### Note that we have not renamed the variable (e.g., to LogSalePrice.)    
+##### Rather, we need to remember that it is still named "SalePrice" in the new dataframe "logtrain.df",
+##### but the values now represent the logarithm of the SalePrice.
+
+```{r display-log-saleprice-graph}
+item=81
+  thisname = attr(logtrain.df[item],"names")
+  # create a title which incorporates the sequence number 
+  # of the variable along with the name, for guidance
+  mainheader = paste(item, ": Log of ", thisname)
+  #print(thisname)
+  rawitem  = logtrain.df[item]
+  thisitem = logtrain.df[[item]]
+  thisclass = class(thisitem)
+    ## Compute the summary statistics, plus the standard deviation
+    numresult=c(summary(thisitem),
+                STDEV=sd(thisitem,na.rm=T))
+    
+    ## plot the histogram
+    hist(thisitem,breaks=30,main = mainheader,xlab=thisname,col="lightblue",probability =  T)
+    
+    ## add a normal curve fit
+    curve(dnorm(x, mean = mean(thisitem), sd = sd(thisitem)), col="blue", lwd=3 , add=TRUE)
+    
+    ## add an exponential curve fit
+    curve(dexp(x, rate=1/mean(thisitem)), col="purple", lwd=3, lty="dashed", add=TRUE)
+    
+    ## add a vertical line for median
+    abline(v=numresult["Median"],col="green", lwd=2)
+    
+    ## add a vertical line for mean
+    abline(v=numresult["Mean"],col="black",lwd=2)
+
+    ## add vertical lines for down and up one standard deviation
+    abline(v=numresult["Mean"]-numresult["STDEV"],col="red",lty="dashed", lwd=2)
+    abline(v=numresult["Mean"]+numresult["STDEV"],col="red",lty="dashed", lwd=2)
+    print(numresult)
+
+```
+
+The transformed SalePrice now resembles a Normal distribution.
+
+
+
+
+##### split up LOGtrain dataset - post cleaning
+Note that we are now using the dataframe where SalePrice has been replaced by its logarithm...
+
+```{r split up dataset-postclean}
+# 19 variables --> 0 after cleaning
+train.df.somemissing=logtrain.df[sapply(logtrain.df, function(x) sum(is.na(x))>0)]
+# 62 variables --> 81 after cleaning
+train.df.nomissing=logtrain.df[sapply(logtrain.df, function(x) sum(is.na(x))==0)]
+
+#### Note that SalePrice is now "numeric" rather than "integer" because of logarithm
+# 38 variables -> 37
+train.df.numeric=logtrain.df[sapply(logtrain.df, is.numeric)]
+# 43 variables -> 44
+train.df.factor=logtrain.df[sapply(logtrain.df, is.factor)]
+
+# 35 variables -> 37
+train.df.numeric.nomissing = train.df.nomissing[sapply(train.df.nomissing, is.numeric)]
+# 27 fariables -> 44
+train.df.factor.nomissing =  train.df.nomissing[sapply(train.df.nomissing, is.factor)]
+```
+
+
+
+
+#### **Boruta: Variable Importance**
+
+##### **The importance of each original variable is ranked using the `Boruta` function.**
+
+##### **Boruta** is a feature selection algorithm, using **Random Forest** to select "important" variables. 
+##### It classifies the feature variables into 3 levels based on the p-value specified: Confirmed, Tentative, or Rejected. 
+
+
+##### Use the Boruta algorithm to determine the "importance" of the various variables in predicting SalePrice.
+##### We run this search on just those variables which have no "missing" values - which should now cover everything...
+
+```{r Boruta}
+library(Boruta)
+set.seed(1)
+
+# Use a version of the dataframe which incorporates just those variables 
+# which have no "Missing" (NA) values.
+# Consider all such variables (SalePrice ~ .) 
+# to assess "importance" in prediction of SalePrice
+#
+# I have found a problem when including categorical (factor) variables.
+# The issue occurs when a factor variable contains a level which is 
+#     present in the test set, 
+#     but is not present in the training set.
+# The model can be built and optimized, 
+# but when it comes time to use the "predict()" function at the end, 
+# it will fail if there is any new level in a factor in the test data 
+# which was not present in the training data.
+#
+# For this reason, I will now try the below on numerical values only.  
+# Boruta(SalePrice  ~ .  , data=train.df.nomissing)->Bor.hvo
+
+Boruta(SalePrice  ~ .  , data=train.df.numeric.nomissing)->Bor.hvo
+### Note that in the above database, SalePrice has been replaced by its logarithm.
+### Thus we are measuring importance relative to fitting log(SalePrice)
+
+print(Bor.hvo)
+```
+
+#### Plot Borura results
+```{r PlotBoruta, fig.width=13, fig.height=10}
+plot(Bor.hvo,  cex.axis=0.75, las=2, main="Boruta algorithm for Feature Selection", xlab="")
+```
+
+The above graph can be interpreted as follows:   
+
+* The 26 variables on the right (in Green) are ***Confirmed*** to be "important" .      
++   The most "important" variables are `GrLivArea` and `OverallQual`.   
+* The 7 variables on the left (in Red) are ***Rejected*** as "not important"  .    
+* The 3 variables in the middle (in Yellow) are marked as ***Tentative*** .     
+* A few variables are generated by the algorithm and given names like "shadowMin", "shadowMean", and "shadowMax" are shown above in Blue -- these can be ignored.
+
+##### Tabular listing of Boruta results:
+```{r Boruta-Results}
+BorutaFinal       <- Bor.hvo$finalDecision
+
+# Here is the alphabetized list of Boruta decision:
+BorutaFinalAlpha  <- BorutaFinal[order(names(BorutaFinal))] %>% t %>% t
+
+# Extract the numerical median results from the Boruta algorithm
+BorutaMedian      <- apply(X = Bor.hvo$ImpHistory, MARGIN = 2, FUN = median)
+# drop the three "shadow" variables from the list
+BorutaMedian      <- BorutaMedian[BorutaMedian %>% names %>% grep("shadow",.,invert=T)]
+# alphabetize the list
+BorutaMedianAlpha <- BorutaMedian[order(names(BorutaMedian))]
+BorutaMedianAlphaNum <- as.numeric(BorutaMedianAlpha)
+
+BorutaMedianAlpha <- BorutaMedian[order(names(BorutaMedian))] %>% t %>% t
+
+BorutaJoinedAlpha <- cbind(BorutaFinalAlpha,BorutaMedianAlpha)
+
+BorutaFinalAlphaResults <- as.character(BorutaFinalAlpha)
+BorutaFinalAlphaNames <- BorutaFinal[names(BorutaFinal) %>% order] %>% names()
+
+# Here's the alphabetical list of the Boruta results:
+BorutaByAlpha <- cbind(BorutaFinalAlphaNames,BorutaFinalAlphaResults,BorutaMedianAlphaNum)
+BorutaByAlpha
+
+# Here's the numerical list of the Boruta results:
+BorutaByNum <- BorutaByAlpha[order(BorutaMedianAlphaNum),]
+BorutaByNum %>% kable() %>% kable_styling(c("bordered","striped"),full_width = F)
+
+BorutaConfirmed <- BorutaByNum[BorutaByNum[,"BorutaFinalAlphaResults"]=="Confirmed",]
+BorutaConfirmedFeatures<-BorutaConfirmed[,1]
+
+# Include the name of the target variable on the list
+BorutaPlusTarget<-c("SalePrice",BorutaConfirmedFeatures)
+
+library(tidyselect)
+# make a dataframe which includes just these "confirmed important" variables
+train.df.Boruta <- logtrain.df %>% dplyr::select(vars_select(.vars = names(logtrain.df),BorutaPlusTarget))
+
+```
+
+
+#### According to Boruta, the two most "important" variables for predicting SalePrice are:
+
+* GrLivArea     (continuous)
+* OverallQual   (numeric, integer rating from 1 through 10)
+
+#### Pull just these three variables into their own data frame
+```{r my-cor-df}
+my.train.df.correl <- logtrain.df %>% dplyr::select(vars_select(.vars = names(logtrain.df),
+                                                 c("SalePrice","GrLivArea","OverallQual")))
+```
+
+\newpage
+#### Provide a ***scatterplot matrix*** for at least two of the independent variables and the dependent variable.    
+
+```{r scatterplot-with-ggplot2}
+pairs(my.train.df.correl, 
+      main = "SalePrice,OverallQual,GrLivArea",
+      pch = 21, 
+      bg = rainbow(10)[as.factor(my.train.df.correl$OverallQual)])
+
+```
+
+\newpage
+#### Derive a ***correlation matrix*** for any three quantitative variables in the dataset.    
+
+```{r correlation-matrix-3-vars}
+
+### Here are the correlations of the three variables selected above:
+
+cor(logtrain.df$SalePrice,logtrain.df$OverallQual)
+cor(logtrain.df$SalePrice,logtrain.df$GrLivArea)
+cor(logtrain.df$OverallQual,logtrain.df$GrLivArea)
+
+
+### Make a correlation matrix
+mycor3 <- cor(my.train.df.correl)
+mycor3 %>% kable() %>% kable_styling(c("striped", "bordered"),full_width = F)
+
+```
+
+\newpage
+#### Colorful plot of correlations 
+```{r my-3-correlations, echo=FALSE, fig.width = 10, fig.height=10}
+library(corrplot)
+  corrplot(corr = mycor3, type = "full", outline = T,  order="original", 
+           sig.level = 0.05, insig = "blank", addCoef.col = "black",
+           title = "\nCorrelation Matrix",
+           number.cex = 2, number.font = 1, number.digits = 5 )
+```
+
+
+
+
+##### **Check variable correlation more widely**
+
+```{r correlation}
+library(Hmisc)
+res2<-rcorr(as.matrix(train.df.numeric))
+respearson=rcorr(as.matrix(train.df.numeric),type = "pearson")
+resspearman=rcorr(as.matrix(train.df.numeric),type = "spearman")
+res3 <- cor(as.matrix(train.df.numeric))
+```  
+
+\newpage
+###### Pearson rank correlation
+```{r pearson-rank-correl, echo=FALSE, fig.width = 20, fig.height=20}
+  corrplot(corr = respearson$r, type = "upper", outline = T, order="original", 
+           p.mat = respearson$P, sig.level = 0.05, insig = "blank", addCoef.col = "black",
+           title = "\nPearson Rank Correlation",
+           number.cex = 0.9, number.font = 1, number.digits = 2 )
+```
+The above shows the target variable, `SalePrice` in the rightmost column, along with the pairwise correlations of tall the variables considered (for technical reasons, we have only looked at those variables without any "missing" values.)   
+
+The independent variables which display a high correlation are reflected in larger circles, with a darker blue color.
+
+\newpage
+#### Spearman rank correlation
+
+This is quite similar to that above, except we change the sequence in which the variables are listed.   
+Now they are clustered together based upon similarity.   
+
+```{r spearman-rank-correl, echo=FALSE, fig.width = 20, fig.height=20}
+  corrplot(corr = resspearman$r, type = "upper", outline = T,  order="hclust", 
+           p.mat = resspearman$P, sig.level = 0.05, insig = "blank", addCoef.col = "black",
+           title = "\nRank Correlation (Spearman)",
+           number.cex = 0.9, number.font = 1, number.digits = 2)
+```
+
+#### ***Test the hypotheses*** that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval.     
+
+##### SalePrice + GrLivArea
+```{r test-correlation-1}
+cor.test(~ SalePrice + GrLivArea, data=my.train.df.correl,method="pearson",conf.level = 0.8)
+
+```
+The p-value is zero and the 80-percent confidence interval does not include zero, so we reject $H_0$: true correlation equals zero, in favor of $H_A$ .
+
+
+##### SalePrice + OverallQual
+```{r test-correlation-2}
+cor.test(~ SalePrice + OverallQual, data=my.train.df.correl,method="pearson",conf.level = 0.8)
+
+```
+The p-value is zero and the 80-percent confidence interval does not include zero, so we reject $H_0$: true correlation equals zero, in favor of $H_A$ .
+
+
+##### GrLivArea + OverallQual
+```{r test-correlation-3}
+cor.test(~ GrLivArea + OverallQual, data=my.train.df.correl,method="pearson",conf.level = 0.8)
+
+```
+The p-value is zero and the 80-percent confidence interval does not include zero, so we reject $H_0$: true correlation equals zero, in favor of $H_A$ .
+
+
+#### Discuss the meaning of your analysis.     
+
+As these variables are highly correlated with each other, we can hope that the independent variables will help explain the dependent variable (SalesPrice) when we use them in the regression model.       
+
+Of course, correlation does not imply causation, but intuitively it does make sense that houses which are larger, and which are rated as being of high quality, would likely sell for higher prices.
+
+
+#### Would you be worried about ***familywise error***?     
+
+**Definition:**  The ***familywise error rate*** (FWE or FWER) is the probability of a coming to ***at least one false conclusion*** in a series of hypothesis tests.    
+In other words, it’s the probability of making at least one Type I Error.    
+(The FWER is also called ***alpha inflation*** or ***cumulative Type I error.***)    
+
+The formula to estimate the familywise error rate is: $FWE \le 1 – (1 – \alpha_i)^c$ , where:
+
+* $\alpha_i =$ alpha level for an individual test (here, .20 for an 80% confidence interval), and     
+* $c =$ Number of comparisons.
+
+So here, $FWER \le= 1 – (1 – 0.2)^3 = 1-0.8^3 = 1 - 0.512 = 0.488$ .
+
+This means that we have nearly a 50 percent chance of coming to a false conclusion across three hypothesis tests.
+
+#### Why or why not?
+
+I'm not concerned, because we could implement the Bonferroni correction, reducing the alpha on each of the three tests, and still would come up with an acceptable result.
+
+
+***
+\newpage
+## ***5 points.*** Linear Algebra and Correlation.    
+
+
+#### Invert your correlation matrix from above. 
+(This is known as the ***precision matrix*** and contains ***variance inflation factors*** on the diagonal.)    
+
+```{r invert-mycor}
+
+### My correlation matrix
+mycor3
+
+### Inverted
+precision_matrix <- solve(mycor3)
+precision_matrix
+```
+
+
+#### Multiply the correlation matrix by the precision matrix, and then   
+
+```{r mult1}
+result1 <- precision_matrix %*% mycor3
+result1
+round(result1,digits=8)
+```
+
+#### multiply the precision matrix by the correlation matrix.     
+```{r mult2}
+result2 <-  mycor3 %*% precision_matrix
+result2
+round(result2,digits=8)
+```
+
+#### Conduct ***LU decomposition*** on the matrix.  
+
+```{r LU}
+library(matrixcalc)
+myLU <- lu.decomposition(mycor3)
+myLU
+
+### check the results
+checkLU <- myLU$L %*% myLU$U
+checkLU
+
+### check the difference
+checkLU - mycor3
+all.equal(checkLU , mycor3)
+### difference is due to dimnames, so make them same
+dimnames(checkLU) <- dimnames(mycor3)
+
+### again, check for equality
+all.equal(checkLU , mycor3)
+
+```
+***
+\newpage
+## ***5 points.*** Calculus-Based Probability & Statistics.       
+
+Many times, it makes sense to ***fit a closed form distribution to data.***    
+
+***Select a variable*** in the Kaggle.com training dataset that is ***skewed to the right***,    
+shift it so that the minimum value is absolutely above zero if necessary.      
+
+#### Here we will compute the skewness for each quantitative value in the dataset:
+
+```{r skewness}
+library(moments)
+### Compute the skewness for each numeric variable (n=37) in the dataset
+skewlist <- sapply(X=train.df.numeric, FUN = skewness) %>% sort%>% t %>% t
+skewlist
+```
+
+The items at the bottom of the list are most heavily skewed to the right.  
+Some of these have a large number of zero values, for example since there are only 7 homes with pools, the other 1453 homes have a zero for `PoolArea` .   
+We note that Variable number 35: `BsmtFinSF1`  has a smaller number of zero entries (467) and a reasonable right skewness (1.68377) .   
+
+Its plot looks somewhat exponential:
+```{r plot-35}
+for (item in 35 ){
+  thisname = attr(logtrain.df[item],"names")
+  # create a title which incorporates the sequence number of the variable along with the name, for guidance
+  mainheader = paste(item, ": ", thisname)
+  #print(thisname)
+  rawitem  = logtrain.df[item]
+  thisitem = logtrain.df[[item]]
+  thisclass = class(thisitem)
+
+  if (thisclass=="integer"||thisclass=="numeric") {
+    numresult=c(summary(thisitem),
+                STDEV=sd(thisitem,na.rm=T))
+    hist(thisitem,breaks=30,main = mainheader,xlab=thisname,col="lightblue",probability =  T)
+    curve(dnorm(x, mean = mean(thisitem), sd = sd(thisitem)), col="blue", lwd=3 , add=TRUE)
+    curve(dexp(x, rate=1/mean(thisitem)), col="purple", lwd=3, lty="dashed", add=TRUE)
+    abline(v=numresult["Median"],col="green", lwd=2)
+    abline(v=numresult["Mean"],col="black",lwd=2)
+    abline(v=numresult["Mean"]-numresult["STDEV"],col="red",lty="dashed", lwd=2)
+    abline(v=numresult["Mean"]+numresult["STDEV"],col="red",lty="dashed", lwd=2)
+    print(numresult)
+  } 
+}
+```
+
+(Here, the purple curve represents an exponential fit.)
+
+
+#### select skewed variable > 0
+
+##### Shift the distribution by adding 1
+```{r select-skew-variable}
+### add one to the variable to move the zero entries to 1
+my_skew = train.df$BsmtFinSF1 + 1
+
+hh=hist(my_skew,breaks=30,probability = T,col="lightgreen") ; 
+curve(dexp(x,rate=1/mean(my_skew)),col="blue",lwd=2,add=T)
+```
+Then load the MASS package and run `fitdistr` to fit an ***exponential*** probability density function.   
+(See  https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/fitdistr.html ).    
+
+```{r fit-exponential}
+library(MASS)
+expfit <- fitdistr(my_skew , densfun = "exponential")
+expfit
+
+# Check that it is the reciprocal of the mean
+expmean <- mean(my_skew)
+expmean
+1/expmean
+# are they equal?
+1/expmean - expfit$estimate
+```
+
+***Find the optimal value of $\lambda$*** for this distribution,    
+and then ***take 1000 samples*** from this exponential distribution using this value (e.g., rexp(1000, $\lambda$)).     
+
+```{r get-samples}
+lamda = expfit$estimate
+set.seed(12344)
+mysim <- rexp(1000,lamda)
+```
+
+***Plot a histogram*** and compare it with a histogram of your original variable.     
+```{r plothist, fig.height=10,fig.width=10}
+par(mfrow = c(2, 1))
+
+
+ss=hist(mysim,breaks=hh$breaks,probability = T, xlim=c(0,6000), col="lightblue")
+curve(dexp(x,rate=lamda),col="red",lwd=2,add=T)
+
+hist(my_skew,breaks=30,probability = T,col="lightgreen") ; 
+curve(dexp(x,rate=1/mean(my_skew)),col="blue",lwd=2,add=T)
+
+```
+
+The plots do look rather similar, excepting for a smaller density in the second bucket of the empirical distribution.
+
+#### Using the exponential pdf, ***find the 5th and 95th percentiles*** using the cumulative distribution function (CDF).       
+
+```{r get-percentiles}
+qexp(c(.05, .95), rate = lamda)
+```
+
+The 5th percentile of the exponential distribution, at this lambda, is 22.807, while the 95th percentile is 1332.
+
+#### Also ***generate a 95% confidence interval*** from the empirical data, assuming normality.     
+
+Assuming that the original data is normally distributed (which it clearly is not), to generate a 95 percent confidence interval we look to the tails of 0.025 and 0.975.
+
+```{r get-CI}
+my_mean = mean(my_skew)
+my_mean
+my_sd = sd(my_skew)
+my_sd
+qnorm(c(.025, .975), mean=my_mean, sd=my_sd)
+```
+
+This indicates that the 95% confidence interval for the data (**not** for the **mean**) is (-.449.496, 1338.576) .   
+Of course, it doesn't make sense to have negative values, so the left tail would have to be truncated at zero.   
+This indicates that a Normal distribution is not appropriate for this data.   
+
+
+#### Finally, provide the ***empirical 5th percentile and 95th percentile*** of the data.    
+
+```{r get-pct}
+quantile(x = my_skew,probs = c(0.05,0.95))
+```
+Because we'ce shifted the data up by 1, the empirical quantiles are (1,1275).    
+(We would subtract 1 to reflect the original data.)
+
+
+#### Discuss.
+
+Because there are so many zero values in the dataset (e.g., some houses do not have a basement; others may have a basement but it may be "unfinshed", i.e, not built up like a living space), the square footage measured for such houses is zero.   
+
+This would suggest that a more appropriate model could be something which handles "Zero-Inflated" cases, e.g., Zero-Inflated Poisson; Zero-Inflated Negative Binomial, etc.   
+
+ 
+***
+\newpage
+## ***10 points.*** Modeling.   
+
+### Build some type of multiple regression  model and submit your model to the competition board.  
+
+We will implement forward and backward stepwise regression to select features to determine the "best" model, where the criteria used here is minimizing the Akaike Information Criterion (AIC).   (Because the stepwise algorithm is "greedy", it is possible that the forward and backward algorithms may not converge onto the same model, especially in the case of a large number of potential features, as we have here.)
+
+#### Create full and null models, for starting points of the stepwise regressions
+
+##### Null model (intercept only)
+
+```{r multiple-reg-1}
+library(MASS)
+lm_Null    <- lm(formula = SalePrice ~ 1, data = train.df.Boruta)
+lm_Null_sum <- summary(lm_Null)
+lm_Null_sum
+```
+
+The above model has only an intercept; it does not yield sufficient diagnostics to compute $R^2$.    
+The standard error of the residuals is $\sigma=`r lm_Null_sum$sigma`$,  which is quite high.
+
+##### Full model (all variables)
+```{r full-model}
+lm_Boruta1 <- lm(formula = SalePrice ~ ., data = train.df.Boruta)
+lm_Boruta1_sum <- summary(lm_Boruta1)
+lm_Boruta1_sum
+```
+
+
+The full model gives $R^2 = `r lm_Boruta1_sum$r.squared`$ and adj-$R^2 = `r lm_Boruta1_sum$adj.r.squared`$ , which seem rather good.  
+The standard error of the residuals is $\sigma=`r lm_Boruta1_sum$sigma`$,  which is considerably better.   
+The model incorporates a large number of variables (25).
+
+Interestingly, with all the other variables included, the "GrLivingArea" variable (which was measured as  "most important" by the Boruta algorithm) is not significant here, as the p-value is quite large (see the final entry in the above table.)    
+
+
+\newpage
+### Forward Stepwise
+Forward stepwise regression starts from an empty model (here, just the intercept) and adds variables one-by-one when doing so improves the AIC.    
+The algorithm ends when no more variables can be added which would improve the AIC.
+```{r forwardstep}
+stepforward <- stepAIC(lm_Null,
+                       direction="both",
+                       scope=list(upper=lm_Boruta1,
+                                  lower=lm_Null))
+stepforward_sum <- summary(stepforward)
+stepforward_sum
+```
+
+The ***forward stepwise*** algorithm starts from an empty model with an AIC of -2678.57 and, at each step, adds the locally "best" unused variable into the model.  
+
+The first such entry is `OverallQual`, which is not surprising.  It reduces the AIC to -4285.48 .    
+
+The next variable to enter is `GrLivArea`, which is also not surprising, as these two variables were confirmed as "most important" by Boruta.  Adding this variable reduces the AIC to -4641.15 .
+
+Successively adding a total of 18 variables reduces the AIC to -5538.26 , yielding an $R^2=`rstepforward_sum$r.squared`$ and an adj-$R^2=`r stepforward_sum$adj.r.squared`$ .    
+
+The standard error of the residuals has been reduced to $\sigma=`r stepforward_sum$sigma`$ .
+
+The variables selected under forward stepwise include:
+
+1. OverallQual
+1. GrLivArea
+1. YearBuilt
+1. OverallCond
+1. GarageCars
+1. TotalBsmtSF
+1. Fireplaces
+1. BsmtFullBath
+1. LotArea
+1. ScreenPorch
+1. YearRemodAdd
+1. WoodDeckSF
+1. TotRmsAbvGrd
+1. KitchenAbvGr
+1. FullBath
+1. X1stFlrSF
+1. HalfBath
+1. BsmtUnfSF
+
+
+
+\newpage
+### Backward Stepwise
+
+Backward stepwise regression starts from a full model and deletes variables when doing so improves the AIC.  The algorithm ends when no more variables can be deleted which would improve the AIC.
+
+```{r backstep}
+stepbackward <- stepAIC(lm_Boruta1,
+                        direction="both",
+                        scope=list(upper=lm_Boruta1,
+                                   lower=lm_Null))
+stepbackward_sum <- summary(stepbackward)
+stepbackward_sum
+```
+
+The ***backwards stepwise*** algorithm starts from a full model, containing 26 variables, with an AIC of -5524.13. 
+At each step, it eliminates the locally "worst"  variable from the model, causing the AIC to improve (i.e., become more negative) until there are no longer any variables which will further improve the AIC when dropped.
+
+
+Successively removing 8 variables reduces the AIC to -5538.26 , yielding an $R^2=`r stepforward_sum$r.squared`$ and an adj-$R^2=`t stepforward_sum$adj.r.squared`$ .    
+
+The standard error of the residuals has been reduced to $\sigma=`r stepforward_sum$sigma`$ .
+
+The variables selected under backward stepwise include:
+	
+1. ScreenPorch
+1. WoodDeckSF
+1. KitchenAbvGr
+1. BsmtFullBath
+1. HalfBath
+1. BsmtUnfSF
+1. TotRmsAbvGrd
+1. FullBath
+1. GarageCars
+1. YearRemodAdd
+1. OverallCond
+1. Fireplaces
+1. YearBuilt
+1. LotArea
+1. X1stFlrSF
+1. TotalBsmtSF
+1. OverallQual
+1. GrLivArea
+	
+These variables are the same as those obtained from the forward stepwise algorithm, which means that the two methods have converged (this does not always occur.)	
+
+
+
+
+\newpage
+### Provide your complete model summary and results with analysis.     
+
+The model is
+
+$$\begin{aligned}
+log(SalePrice) = 3.242967967491 
+&+0.082635011 \cdot OverallQual  &&+0.000138689 \cdot GrLivArea    \\
+&+0.002653533 \cdot YearBuilt    &&+0.049703505 \cdot OverallCond  \\
+&+0.079146922 \cdot GarageCars   &&+0.000081259 \cdot TotalBsmtSF  \\
+&+0.044529438 \cdot Fireplaces   &&+0.056050340 \cdot BsmtFullBath \\
+&+0.000002042 \cdot LotArea      &&+0.000318029 \cdot ScreenPorch  \\
+&+0.001056153 \cdot YearRemodAdd &&+0.000106292 \cdot WoodDeckSF   \\
+&+0.020111839 \cdot TotRmsAbvGrd &&-0.099780697 \cdot KitchenAbvGr \\
+&+0.036608474 \cdot FullBath     &&+0.000058463 \cdot X1stFlrSF    \\
+&+0.022809299 \cdot HalfBath     &&-0.000019830 \cdot BsmtUnfSF
+\end{aligned}$$
+
+Each of the variables is significant, except for the final one.
+
+
+#### Diagnostics
+
+```{r summary}
+
+plot(stepbackward)
+
+#### Fitted vs. Residuals
+Residual = resid(stepbackward) 
+Fitted = fitted(stepbackward)
+plot(Fitted,Residual, 
+     main="Ames Housing Dataset: Fitted vs. Residuals", 
+     xlab="Log of housing price")
+abline(h=0, col="blue")
+
+
+
+#### Histogram of residuals
+titl = paste("Histogram of Residuals (sd=",round(sd(Residual),4),")" )
+hist(Residual, main = titl, ylab = "Density", 
+     #ylim = c(0, 0.35),
+     xlim = c(-1,1),
+     prob = TRUE,breaks=40, col="lightblue")
+curve(dnorm(x, mean = mean(Residual), sd = sd(Residual)), col="red", add=TRUE)
+```
+
+```{r test-normality, message=F,warning=F}
+#### Tests for normality
+library(olsrr)
+ols_test_normality(stepbackward)
+```
+
+Only the Cramer-von Mises test passes -- the other three tests fail.
+
+#### Homogeneity of residuals
+```{r  homogeneity, message=F,warning=F}
+library(lmSupport)
+modelAssumptions(stepbackward,"NORMAL")
+```
+
+
+All tests fail.
+
+##### Despite the transformation, the model does not satisfy the conditions required for multiple linear regression.   
+##### Additional transformations are needed in order to improve the model to satisfy the conditions.
+
+
+#### Compute the RMSE (on the training data)
+```{r RMSE}
+### this result is the (log(saleprice)) - - needed for RMSE calculation
+log_res_train <- predict(object=stepbackward,newdata=logtrain.df)
+summary(log_res_train)
+
+###  
+
+### need to exponentiate  to get res_train - the predictions, in dollars:
+res_train = exp(log_res_train)
+summary(res_train)
+
+
+
+
+### obtain the test predictions (log_SalePrice) - used (within kaggle) for RMSE score
+log_res_test <- predict(object=stepbackward,newdata=test.df)
+summary(log_res_test)
+
+### need to exponential to get predictions on dollars (for submission to Kaggle)
+res_test = exp(log_res_test)
+summary(res_test)
+
+
+### Compute the RMSE on the training dataset
+library(Metrics)
+log_sale_price = logtrain.df$SalePrice     # log of actual sales prices, for train
+### Here is the RMSE of the log of the actual sale price vs. the log of the predicted price:
+rmse(log_res_train,log_sale_price)
+```
+
+
+
+\newpage
+#### Report your Kaggle.com user name and score.    
+```{r predict0}
+
+### res_test are the exponentiated results, in dollars, which is the format required for Kaggle submission
+kaggle_sub <- cbind(Id=test.df$Id,SalePrice=res_test)
+head(kaggle_sub)
+
+### check for any NA values in the submission -- this would cause a problem
+#### Number of NAs ?
+sum(is.na(kaggle_sub[,2]))
+
+#### Listing of rows for which the model generated NA predictions:
+kaggle_sub[is.na(kaggle_sub[,2]),]
+
+### Create a csv file in the format required for submission to Kaggle
+write_csv(data.frame(kaggle_sub),"kaggle_sub.csv")
+
+```
+
+
+#### Kaggle results
+
+```{r display-kaggle-1}
+knitr::include_graphics("Kaggle_results.JPG") 
+```
+
+```{r display-kaggle-2}
+knitr::include_graphics("Kaggle_results_listing.JPG") 
+```
+
+
+***
+##### The results from the Kaggle submission for this model: ***rmse = 0.14334***
+
+
+
+
